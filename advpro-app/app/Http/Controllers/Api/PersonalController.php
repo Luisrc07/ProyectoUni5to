@@ -100,6 +100,7 @@ class PersonalController extends Controller
             'direccion' => 'nullable|string|max:500',
             'estado' => 'required|string|in:Activo,Inactivo',
             'cargo' => 'required|string',
+            // 'fecha_contratacion' y 'salario' eliminados de la validación
         ]);
 
         $staff = Staff::create($validatedData);
@@ -146,6 +147,7 @@ class PersonalController extends Controller
             'direccion' => 'nullable|string|max:500',
             'estado' => 'sometimes|string|in:Activo,Inactivo',
             'cargo' => 'sometimes|string',
+            // 'fecha_contratacion' y 'salario' eliminados de la validación
         ]);
 
         $personal->update($validatedData);
