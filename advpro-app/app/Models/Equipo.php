@@ -9,34 +9,40 @@ class Equipo extends Model
 {
     use HasFactory;
 
-    // Define el nombre de la tabla si no sigue la convención de nombres de Laravel (plural de la clase)
     protected $table = 'equipos';
+    protected $primaryKey = 'id';
+    public $timestamps = true;
 
-    // Define las columnas que pueden ser asignadas masivamente
     protected $fillable = [
         'nombre',
-        'descripcion', // Es nullable en la migración
+        'descripcion',
         'marca',
-        'tipo_equipo',
-        'estado',
-        'ubicacion',
         'valor',
-        'responsable', // Es una foreign key, por lo tanto, es un ID
+        'estado',
+        'tipo_equipo',
+        'ubicacion',
+        'responsable',
     ];
 
-    // Define los tipos de datos para las columnas que necesitan ser casteadas
     protected $casts = [
-        'valor' => 'decimal:2', // Castea a decimal con 2 decimales
+        'valor' => 'decimal:2',
     ];
 
     /**
-     * Define la relación con el modelo Staff (el responsable del equipo).
-     * Un equipo pertenece a un staff (responsable).
-     * La columna 'responsable' en la tabla 'equipos' se relaciona con 'id' en la tabla 'staff'.
-     * Es nullable, por lo que un equipo puede no tener un responsable asignado.
+     * Obtiene el miembro del staff que es responsable del equipo.
      */
-    public function staffResponsable()
+    public function responsableStaff()
     {
-        return $this->belongsTo(Staff::class, 'responsable')->nullable();
+        return $this->belongsTo(Staff::class, 'responsable', 'id');
+    }
+
+    /**
+     * Relación polimórfica inversa: Un equipo puede estar asignado a muchos proyectos.
+     * Si no usas esta relación, puedes eliminarla.
+     */
+    public function proyectosAsignado()
+    {
+        return $this->morphToMany(Proyecto::class, 'asignable', 'proyecto_recursos', 'asignable_id', 'proyecto_id')
+                     ->withPivot('id', 'cantidad', 'fecha_asignacion', 'fecha_fin_asignacion');
     }
 }
