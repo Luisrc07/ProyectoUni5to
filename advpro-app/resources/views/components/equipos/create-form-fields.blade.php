@@ -54,7 +54,7 @@
     <label class="block mt-2 text-sm">
         <span class="text-gray-700 dark:text-gray-400">Estado</span>
         <select name="estado"
-            class="block w-full mt-1 text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray"
+            class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray"
             required>
             <option value="" {{ !old('estado') ? 'selected' : '' }} disabled>Seleccionar</option>
             <option value="Nuevo" {{ old('estado') == 'Nuevo' ? 'selected' : '' }}>Nuevo</option>
@@ -89,11 +89,18 @@
     @error('responsable') <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
 
     <label class="block mt-2 text-sm">
-        <span class="text-gray-700 dark:text-gray-400">Valor del equipo</span>
+        <span class="text-gray-700 dark:text-gray-400">Cantidad</span>
+        value="{{ old('cantidad') }}"
+        required
+        />
+    </label>
+    @error('cantidad') <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+
+    <label class="block mt-2 text-sm">
+        <span class="text-gray-700 dark:text-gray-400">Valor Unitario</span>
         <input type="number" name="valor" step="0.01"
             class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
             placeholder="0.00"
-            value="{{ old('valor') }}"
             required
         />
     </label>

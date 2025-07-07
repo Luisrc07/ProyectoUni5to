@@ -21,7 +21,9 @@ class Equipo extends Model
         'estado',
         'ubicacion',
         'valor',
+        'cantidad',
         'responsable', // Es una foreign key, por lo tanto, es un ID
+
     ];
 
     // Define los tipos de datos para las columnas que necesitan ser casteadas
@@ -35,8 +37,14 @@ class Equipo extends Model
      * La columna 'responsable' en la tabla 'equipos' se relaciona con 'id' en la tabla 'staff'.
      * Es nullable, por lo que un equipo puede no tener un responsable asignado.
      */
-    public function staffResponsable()
+    public function responsableStaff()
     {
-        return $this->belongsTo(Staff::class, 'responsable')->nullable();
+        return $this->belongsTo(Staff::class, 'responsable', 'id');
+    }
+
+    public function proyectosAsignado()
+    {
+        return $this->morphToMany(Proyecto::class, 'asignable', 'proyecto_recursos', 'asignable_id', 'proyecto_id')
+                     ->withPivot('id', 'cantidad', 'fecha_asignacion', 'fecha_fin_asignacion');
     }
 }

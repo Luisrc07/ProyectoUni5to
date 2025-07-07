@@ -131,9 +131,9 @@ class EquipoController extends Controller
             'marca' => 'required|string|max:255',
             'tipo_equipo' => 'required|string|max:255',
             'estado' => 'required|string|in:Nuevo,Usado,Reparado',
-            'cantidad' => 'required|integer|min:0', // ¡Validación para cantidad!
             'ubicacion' => 'required|string|max:255',
             'responsable' => 'nullable|exists:staff,id',
+            'cantidad' => 'required|integer|min:1|max:50',
             'valor' => 'required|numeric|min:0',
         ]);
 
@@ -183,9 +183,9 @@ class EquipoController extends Controller
             'marca' => 'sometimes|string|max:255',
             'tipo_equipo' => 'sometimes|string|max:255',
             'estado' => 'sometimes|string|in:Nuevo,Usado,Reparado',
-            'cantidad' => 'sometimes|integer|min:0', // ¡Validación para cantidad!
             'ubicacion' => 'sometimes|string|max:255',
             'responsable' => 'nullable|exists:staff,id',
+            'cantidad' => 'required|integer|min:1|max:50',
             'valor' => 'sometimes|numeric|min:0',
         ]);
 
