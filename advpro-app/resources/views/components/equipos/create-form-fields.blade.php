@@ -89,7 +89,18 @@
     @error('responsable') <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
 
     <label class="block mt-2 text-sm">
-        <span class="text-gray-700 dark:text-gray-400">Valor del equipo</span>
+        <span class="text-gray-700 dark:text-gray-400">Cantidad</span>
+        <input type="number" name="cantidad" step="1"
+        class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
+        placeholder="0"
+        value="{{ old('cantidad') }}"
+        required
+        />
+    </label>
+    @error('cantidad') <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+
+    <label class="block mt-2 text-sm">
+        <span class="text-gray-700 dark:text-gray-400">Valor Unitario</span>
         <input type="number" name="valor" step="0.01"
             class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
             placeholder="0.00"

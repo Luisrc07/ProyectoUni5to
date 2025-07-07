@@ -133,6 +133,7 @@ class EquipoController extends Controller
             'estado' => 'required|string|in:Nuevo,Usado,Reparado',
             'ubicacion' => 'required|string|max:255',
             'responsable' => 'nullable|exists:staff,id',
+            'cantidad' => 'required|integer|min:1|max:50',
             'valor' => 'required|numeric|min:0',
         ]);
 
@@ -184,6 +185,7 @@ class EquipoController extends Controller
             'estado' => 'sometimes|string|in:Nuevo,Usado,Reparado',
             'ubicacion' => 'sometimes|string|max:255',
             'responsable' => 'nullable|exists:staff,id',
+            'cantidad' => 'required|integer|min:1|max:50',
             'valor' => 'sometimes|numeric|min:0',
         ]);
 
