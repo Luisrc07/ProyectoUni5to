@@ -1,0 +1,148 @@
+--- para insatalar el .env: ---
+
+composer install
+
+npm install
+
+cp .env.example .env
+
+php artisan key:generate
+
+---- API RESTFUL ----
+Ejemplo con la entidad Clientes
+ En esta guía, desarrollaremos una API RESTful para gestionar clientes con los 
+siguientes campos:- id (autoincremental)- cedula (string, único)- nombre (string)- apellido (string)- correo (string, único)
+
+ 1. Configuración Inicial
+ Asegúrate de tener:- Laravel instalado (composer create-project laravel/laravel api-clientes)- Conexión a base de datos configurada en .env
+
+ 2. Crear la Migración
+ Objetivo: Definir la estructura de la tabla clientes en la base de datos.
+
+ Paso 1: Generar la migración
+ php artisan make:migration create_clientes_table
+ Paso 2: Editar la migración
+ Archivo: database/migrations/XXXX_create_clientes_table.php
+ public function up()
+ {
+ Schema::create('clientes', function (Blueprint $table) {
+ $table->id();
+ $table->string('cedula')->unique();
+ $table->string('nombre');
+ $table->string('apellido');
+        $table->string('correo')->unique();
+        $table->timestamps();
+    });
+ }
+ public function down()
+ {
+    Schema::dropIfExists('clientes');
+ }
+ Paso 3: Ejecutar la migración
+ php artisan migrate
+
+ 3. Crear el Modelo y Factory
+
+ Paso 1: Generar modelo y factory
+ php artisan make:model Cliente -f
+ Paso 2: Configurar el modelo
+ Archivo: app/Models/Cliente.php
+ protected \$fillable = ['cedula', 'nombre', 'apellido', 'correo'];
+ Paso 3: Configurar el Factory
+ Archivo: database/factories/ClienteFactory.php
+ public function definition()
+ {
+    return [
+        'cedula' => $this->faker->unique()->numerify('##########'),
+        'nombre' => $this->faker->firstName,
+        'apellido' => $this->faker->lastName,
+        'correo' => $this->faker->unique()->safeEmail,
+    ];
+ }
+
+ 4. Crear un Seeder para Datos de Prueba
+ Paso 1: Generar el seeder
+ php artisan make:seeder ClientesTableSeeder
+Paso 2: Configurar el seeder
+ Archivo: database/seeders/ClientesTableSeeder.php
+ public function run()
+ {
+    \App\Models\Cliente::factory(10)->create();
+ }
+ Paso 3: Ejecutar el seeder
+ php artisan db:seed --class=ClientesTableSeeder
+
+ 5. Crear el Controlador de la API
+ Paso 1: Generar el controlador
+ php artisan make:controller Api/ClienteController --api
+ Paso 2: Implementar métodos RESTful
+ Archivo: app/Http/Controllers/Api/ClienteController.php
+ use App\Models\Cliente;
+ use Illuminate\Http\Request;
+ class ClienteController extends Controller
+ {
+    public function index()
+    {
+        return Cliente::all();
+    }
+    public function store(Request $request)
+    {
+        $request->validate([
+            'cedula' => 'required|unique:clientes',
+            'nombre' => 'required',
+            'apellido' => 'required',
+            'correo' => 'required|email|unique:clientes',
+        ]);
+        return Cliente::create($request->all());
+    }
+    public function show($id)
+    {
+        return Cliente::findOrFail($id);
+    }
+    public function update(Request $request, $id)
+    {
+        $cliente = Cliente::findOrFail($id);
+        $cliente->update($request->all());
+        return $cliente;
+    }
+    public function destroy($id)
+    {
+        Cliente::destroy($id);
+        return response()->json(['message' => 'Cliente eliminado']);
+    }
+ }
+
+ 6. Definir las Rutas de la API
+ Archivo: routes/api.php
+ use App\Http\Controllers\Api\ClienteController;
+ use Illuminate\Support\Facades\Route;
+ Route::apiResource('clientes', ClienteController::class);
+ Esto creará automáticamente las siguientes rutas:
+ GET /api/clientes – Listar todos
+ POST /api/clientes – Crear
+ GET /api/clientes/{id} – Mostrar uno
+ PUT/PATCH /api/clientes/{id} – Actualizar
+ DELETE /api/clientes/{id} – Eliminar
+ 
+7. Probar la API en Insomnia/Postman
+ Listar todos los clientes (GET):
+ GET http://localhost:8000/api/clientes
+ Crear un cliente (POST):
+ POST http://localhost:8000/api/clientes
+ Headers: Content-Type: application/json
+ Body (raw JSON):
+ {
+ }
+ "cedula": "1234567890",
+ "nombre": "Juan",
+ "apellido": "Pérez",
+ "correo": "juan@example.com"
+ Actualizar un cliente (PUT):
+ PUT http://localhost:8000/api/clientes/1
+ Body:
+ {
+ }
+ "nombre": "Juan Carlos"
+ Eliminar un cliente (DELETE):
+ DELETE http://localhost:8000/api/clientes/1
+
