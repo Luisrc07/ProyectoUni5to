@@ -21,7 +21,6 @@ class Equipo extends Model
         'estado',
         'ubicacion',
         'valor',
-
         'responsable', // Es una foreign key, por lo tanto, es un ID
 
     ];

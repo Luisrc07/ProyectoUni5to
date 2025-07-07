@@ -1,95 +1,101 @@
-{{-- resources/views/components/personal/create-form-fields.blade.php --}}
-
 <div class="max-w-md mx-auto">
     <label class="block mt-2 text-sm">
-        <span class="text-gray-700 dark:text-gray-400">Nombre</span>
+        <span class="text-gray-700 dark:text-gray-400">Nombre del equipo</span>
         <input name="nombre"
             class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
-            placeholder="Ej: Ana Rodríguez"
+            placeholder="Ej: Cámara Sony A7"
             value="{{ old('nombre') }}"
             required
         />
     </label>
-
-    <div class="mt-2 text-sm">
-        <span class="text-gray-700 dark:text-gray-400">Documento de identidad</span>
-        <div>
-            <label class="inline-flex items-center text-sm">
-                <select name="tipo_documento" id="tipo_documento_create"
-                    class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray">
-                    <option value="" {{ !old('tipo_documento') ? 'selected' : '' }} disabled>- Seleccione -</option>
-                    <option value="V" {{ old('tipo_documento') == 'V' ? 'selected' : '' }}>V</option>
-                    <option value="J" {{ old('tipo_documento') == 'J' ? 'selected' : '' }}>J</option>
-                    <option value="E" {{ old('tipo_documento') == 'E' ? 'selected' : '' }}>E</option>
-                    <option value="P" {{ old('tipo_documento') == 'P' ? 'selected' : '' }}>P</option>
-                </select>
-            </label>
-        </div>
-    </div>
+    @error('nombre') <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
 
     <label class="block mt-2 text-sm">
-        <span class="text-gray-700 dark:text-gray-400">Número de Documento</span>
-        <input type="text" name="documento"
-            class="block w-full mt-1 text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
-            placeholder="Ej: 12345678"
-            value="{{ old('documento') }}"
+        <span class="text-gray-700 dark:text-gray-400">Descripción</span>
+        <textarea name="descripcion"
+            class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-textarea"
+            placeholder="Ej: Cámara profesional de alta definición"
+        >{{ old('descripcion') }}</textarea>
+    </label>
+    @error('descripcion') <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+
+    <label class="block mt-2 text-sm">
+        <span class="text-gray-700 dark:text-gray-400">Marca</span>
+        <input name="marca"
+            class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
+            placeholder="Ej: Sony, Canon, Panasonic"
+            value="{{ old('marca') }}"
             required
         />
-        @error('documento')
-            <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
     </label>
+    @error('marca') <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
 
     <label class="block mt-2 text-sm">
-        <span class="text-gray-700 dark:text-gray-400">Email</span>
-        <input type="email" name="email"
-            class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
-            placeholder="Ej: ana.rodriguez@example.com"
-            value="{{ old('email') }}"
-        />
-    </label>
-
-    <label class="block mt-2 text-sm">
-        <span class="text-gray-700 dark:text-gray-400">Teléfono</span>
-        <input type="text" name="telefono"
-            class="block w-full mt-1 text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
-            placeholder="Ej: 0412-9876543"
-            value="{{ old('telefono') }}"
-        />
-    </label>
-
-    <label class="block mt-2 text-sm">
-        <span class="text-gray-700 dark:text-gray-400">Dirección</span>
-        <input type="text" name="direccion"
-            class="block w-full mt-1 text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
-            placeholder="Ej: Av. Principal, Edificio X, Apt. 1A"
-            value="{{ old('direccion') }}"
-        />
-    </label>
-
-    <label class="block mt-2 text-sm">
-        <span class="text-gray-700 dark:text-gray-400">Cargo</span>
-        <select name="cargo" id="cargo_create"
-            class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray">
-            <option value="" {{ !old('cargo') ? 'selected' : '' }} disabled>- Seleccione -</option>
-            <option value="Producción" {{ old('cargo') == 'Producción' ? 'selected' : '' }}>Producción</option>
-            <option value="Dirección" {{ old('cargo') == 'Dirección' ? 'selected' : '' }}>Dirección</option>
-            <option value="Logística & Equipo" {{ old('cargo') == 'Logística & Equipo' ? 'selected' : '' }}>Logística & Equipo</option>
-            <option value="Guion y Desarrollo" {{ old('cargo') == 'Guion y Desarrollo' ? 'selected' : '' }}>Guion y Desarrollo</option>
-            <option value="Fotografía y Cámara" {{ old('cargo') == 'Fotografía y Cámara' ? 'selected' : '' }}>Fotografía y Cámara</option>
-            <option value="Sonido" {{ old('cargo') == 'Sonido' ? 'selected' : '' }}>Sonido</option>
-            <option value="Arte & Escenografía" {{ old('cargo') == 'Arte & Escenografía' ? 'selected' : '' }}>Arte & Escenografía</option>
-            <option value="Iluminación y Eléctricos" {{ old('cargo') == 'Iluminación y Eléctricos' ? 'selected' : '' }}>Iluminación y Eléctricos</option>
-            <option value="Postproducción" {{ old('cargo') == 'Postproducción' ? 'selected' : '' }}>Postproducción</option>
+        <span class="text-gray-700 dark:text-gray-400">Tipo de Equipo</span>
+        <select name="tipo_equipo"
+            class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray"
+            required>
+            <option value="" {{ !old('tipo_equipo') ? 'selected' : '' }} disabled>Seleccionar</option>
+            <option value="Cámara" {{ old('tipo_equipo') == 'Cámara' ? 'selected' : '' }}>Cámara</option>
+            <option value="Lente" {{ old('tipo_equipo') == 'Lente' ? 'selected' : '' }}>Lente</option>
+            <option value="Iluminación" {{ old('tipo_equipo') == 'Iluminación' ? 'selected' : '' }}>Iluminación</option>
+            <option value="Sonido" {{ old('tipo_equipo') == 'Sonido' ? 'selected' : '' }}>Sonido</option>
+            <option value="Trípode" {{ old('tipo_equipo') == 'Trípode' ? 'selected' : '' }}>Trípode</option>
+            <option value="Estabilizador" {{ old('tipo_equipo') == 'Estabilizador' ? 'selected' : '' }}>Estabilizador</option>
+            <option value="Micrófono" {{ old('tipo_equipo') == 'Micrófono' ? 'selected' : '' }}>Micrófono</option>
+            <option value="Monitor" {{ old('tipo_equipo') == 'Monitor' ? 'selected' : '' }}>Monitor</option>
+            <option value="Batería" {{ old('tipo_equipo') == 'Batería' ? 'selected' : '' }}>Batería</option>
+            <option value="Cable" {{ old('tipo_equipo') == 'Cable' ? 'selected' : '' }}>Cable</option>
+            <option value="Otro" {{ old('tipo_equipo') == 'Otro' ? 'selected' : '' }}>Otro</option>
         </select>
     </label>
+    @error('tipo_equipo') <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
 
     <label class="block mt-2 text-sm">
         <span class="text-gray-700 dark:text-gray-400">Estado</span>
-        <select name="estado" id="estado_create"
-            class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray">
-            <option value="Activo" {{ old('estado', 'Activo') == 'Activo' ? 'selected' : '' }}>Activo</option>
-            <option value="Inactivo" {{ old('estado') == 'Inactivo' ? 'selected' : '' }}>Inactivo</option>
+        <select name="estado"
+            class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray"
+            required>
+            <option value="" {{ !old('estado') ? 'selected' : '' }} disabled>Seleccionar</option>
+            <option value="Nuevo" {{ old('estado') == 'Nuevo' ? 'selected' : '' }}>Nuevo</option>
+            <option value="Usado" {{ old('estado') == 'Usado' ? 'selected' : '' }}>Usado</option>
+            <option value="Reparado" {{ old('estado') == 'Reparado' ? 'selected' : '' }}>Reparado</option>
         </select>
     </label>
+    @error('estado') <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+
+    <label class="block mt-2 text-sm">
+        <span class="text-gray-700 dark:text-gray-400">Ubicación</span>
+        <input name="ubicacion"
+            class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
+            placeholder="Ej: Estudio A, Bodega, Oficina 3"
+            value="{{ old('ubicacion') }}"
+            required
+        />
+    </label>
+    @error('ubicacion') <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+
+    <label class="block mt-2 mb-2 items-center text-sm">
+        <span class="text-gray-700 dark:text-gray-400">Responsable</span>
+        <select name="responsable" id="responsable_create" class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray">
+            <option value="" {{ !old('responsable') ? 'selected' : '' }}>Seleccionar</option>
+            @foreach ($personal as $staff)
+                <option value="{{ $staff->id }}" {{ old('responsable') == $staff->id ? 'selected' : '' }}>
+                   {{ $staff->nombre }}
+                </option>
+            @endforeach
+        </select>
+    </label>
+    @error('responsable') <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+
+    <label class="block mt-2 text-sm">
+        <span class="text-gray-700 dark:text-gray-400">Valor del equipo</span>
+        <input type="number" name="valor" step="0.01"
+            class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
+            placeholder="0.00"
+            value="{{ old('valor') }}"
+            required
+        />
+    </label>
+    @error('valor') <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
 </div>
