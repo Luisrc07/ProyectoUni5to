@@ -17,11 +17,11 @@
     <td class="px-4 py-3 text-sm">
         <span class="px-2 py-1 font-semibold leading-tight rounded-full
             @if ($item->estado == 'Realizado')
-                text-green-700 bg-green-100 dark:bg-green-700 dark:text-white
+                text-green-700 bg-green-100 dark:bg-green-700 dark:text-green-100
             @elseif ($item->estado == 'En proceso')
-                text-orange-700 bg-orange-100 dark:bg-orange-700 dark:text-white
+                text-orange-700 bg-orange-100 dark:bg-orange-700 dark:text-orange-100
             @elseif ($item->estado == 'En espera')
-                text-blue-700 bg-blue-100 dark:bg-blue-700 dark:text-white
+                text-blue-700 bg-blue-100 dark:bg-blue-700 dark:text-blue-100
             @endif
         ">
             {{ $item->estado }}
@@ -93,4 +93,3 @@
         </div>
     </td>
 </tr>
-

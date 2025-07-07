@@ -32,28 +32,16 @@
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-                            {{-- Fecha de Inicio --}}
+                            {{-- Duración Estimada en Minutos --}}
                             <label class="block relative">
-                                <span class="flex items-center mb-2 text-gray-600 text-sm font-medium dark:text-gray-400">Fecha de Inicio</span>
-                                <input type="date" name="fecha_inicio" id="fecha_inicio" onchange="calculatePresupuesto()"
+                                <span class="flex items-center mb-2 text-gray-600 text-sm font-medium dark:text-gray-400">Duración Estimada (minutos)</span>
+                                <input type="number" name="duracion_estimada_minutos" id="duracion_estimada_minutos" oninput="calculatePresupuesto()"
                                     class="block w-full h-11 px-5 py-2.5 border border-gray-300 rounded-full placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
-                                    value="{{ old('fecha_inicio', $proyecto->fecha_inicio ?? '') }}" required
+                                    value="{{ old('duracion_estimada_minutos', $proyecto->duracion_estimada_minutos ?? '') }}" required min="1"
                                 />
-                                <p id="fechaInicioError" class="text-red-500 text-xs mt-1"></p>
+                                <p id="duracionError" class="text-red-500 text-xs mt-1"></p>
                             </label>
 
-                            {{-- Fecha de Fin --}}
-                            <label class="block relative">
-                                <span class="flex items-center mb-2 text-gray-600 text-sm font-medium dark:text-gray-400">Fecha de Fin</span>
-                                <input type="date" name="fecha_fin" id="fecha_fin" onchange="calculatePresupuesto()"
-                                    class="block w-full h-11 px-5 py-2.5 border border-gray-300 rounded-full placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
-                                    value="{{ old('fecha_fin', $proyecto->fecha_fin ?? '') }}"
-                                />
-                                <p id="fechaFinError" class="text-red-500 text-xs mt-1"></p>
-                            </label>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                             {{-- Presupuesto (Automático) --}}
                             <label class="block relative">
                                 <span class="flex items-center mb-2 text-gray-600 text-sm font-medium dark:text-gray-400">Presupuesto (Automático)</span>
@@ -62,7 +50,9 @@
                                     step="0.01" value="{{ old('presupuesto', $proyecto->presupuesto ?? 0) }}" required
                                 />
                             </label>
+                        </div>
 
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                             {{-- Estado --}}
                             <label class="block relative">
                                 <span class="flex items-center mb-2 text-gray-600 text-sm font-medium dark:text-gray-400">Estado</span>
@@ -73,9 +63,7 @@
                                     <option value="Realizado" {{ old('estado', $proyecto->estado ?? '') == 'Realizado' ? 'selected' : '' }}>Realizado</option>
                                 </select>
                             </label>
-                        </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                             {{-- Lugar --}}
                             <label class="block relative">
                                 <span class="flex items-center mb-2 text-gray-600 text-sm font-medium dark:text-gray-400">Lugar (Opcional)</span>
@@ -84,7 +72,9 @@
                                     placeholder="Lugar del proyecto" value="{{ old('lugar', $proyecto->lugar ?? '') }}"
                                 />
                             </label>
+                        </div>
 
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                             {{-- Responsable --}}
                             <label class="block relative">
                                 <span class="flex items-center mb-2 text-gray-600 text-sm font-medium dark:text-gray-400">Responsable</span>
@@ -145,21 +135,7 @@
         let personalIndex = 0;
         let equipoIndex = 0;
 
-        // Get today's date in YYYY-MM-DD format for min attribute
-        function getTodayDate() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
-            const day = String(today.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
-        // Set min attribute for date inputs on load
         document.addEventListener('DOMContentLoaded', function() {
-            const today = getTodayDate();
-            document.getElementById('fecha_inicio').setAttribute('min', today);
-            document.getElementById('fecha_fin').setAttribute('min', today);
-
             const initialPersonal = @json($proyecto->personalAsignado ?? []);
             const initialEquipos = @json($proyecto->equiposAsignados ?? []);
 
@@ -305,44 +281,50 @@
         }
 
         function calculatePresupuesto() {
+            // Define rates for easier modification (all in USD)
+            const BASE_PROJECT_FEE = 150; // Base fee for any project
+            const DAILY_PROJECT_OVERHEAD = 50; // Cost per day for general project management/overhead
+            const DAILY_PERSONAL_RATE = 150; // Cost per assigned person per day (increased)
+            const EQUIPMENT_VALUE_PERCENTAGE = 0.30; // 30% of total equipment value for project usage (increased)
+
             let totalPresupuesto = 0;
-            let projectDurationDays = 0;
-
-            const fechaInicioInput = document.getElementById('fecha_inicio');
-            const fechaFinInput = document.getElementById('fecha_fin');
+            const duracionEstimadaMinutosInput = document.getElementById('duracion_estimada_minutos');
             const presupuestoInput = document.getElementById('presupuesto');
-            const fechaInicioError = document.getElementById('fechaInicioError');
-            const fechaFinError = document.getElementById('fechaFinError');
+            const duracionError = document.getElementById('duracionError');
 
-            fechaInicioError.textContent = '';
-            fechaFinError.textContent = '';
+            duracionError.textContent = '';
+            let projectDurationMinutes = parseInt(duracionEstimadaMinutosInput.value);
 
-            const startDate = fechaInicioInput.value ? new Date(fechaInicioInput.value) : null;
-            const endDate = fechaFinInput.value ? new Date(fechaFinInput.value) : null;
+            // Input validation for duration
+            if (isNaN(projectDurationMinutes) || projectDurationMinutes <= 0) {
+                presupuestoInput.value = (0).toFixed(2);
+                duracionError.textContent = 'La duración estimada debe ser un número positivo.';
+                return;
+            }
 
-            if (startDate && endDate) {
-                if (startDate > endDate) {
-                    fechaFinError.textContent = 'La fecha de fin no puede ser anterior a la fecha de inicio.';
-                    presupuestoInput.value = (0).toFixed(2);
-                    return;
-                }
-                const diffTime = Math.abs(endDate - startDate);
-                projectDurationDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            // Convert minutes to hours and days for calculations
+            const projectDurationHours = projectDurationMinutes / 60;
+            const projectDurationDays = projectDurationHours / 24; // Assuming 24 hours per day for simplicity in daily rates
 
-                if (projectDurationDays > 31) { // Aproximadamente 1 mes
-                    fechaFinError.textContent = 'La duración del proyecto no puede ser mayor a 1 mes.';
-                    presupuestoInput.value = (0).toFixed(2);
-                    return;
-                }
-            } else if (startDate && !endDate) {
-                projectDurationDays = 0; // No hay fecha fin, duración 0 para cálculo
-            } else if (!startDate) {
-                // Si no hay fecha de inicio, no se puede calcular la duración
-                projectDurationDays = 0;
+            // 1. Add Base Project Fee
+            totalPresupuesto += BASE_PROJECT_FEE;
+
+            // 2. Add Project Duration Overhead Cost
+            if (projectDurationDays > 0) {
+                 totalPresupuesto += projectDurationDays * DAILY_PROJECT_OVERHEAD;
             }
 
 
-            // 2. Costo de Equipos (20% del valor total)
+            // 3. Add Cost for Assigned Personal
+            const assignedPersonalElements = document.querySelectorAll('#personal-container select[name$="[staff_id]"]');
+            assignedPersonalElements.forEach(selectElement => {
+                // We only add cost if a person is selected and duration is valid
+                if (selectElement.value && projectDurationDays > 0) {
+                    totalPresupuesto += projectDurationDays * DAILY_PERSONAL_RATE;
+                }
+            });
+
+            // 4. Add Cost for Assigned Equipment (percentage of total value)
             let totalValorEquipos = 0;
             const assignedEquiposElements = document.querySelectorAll('#equipos-container select[name$="[equipo_id]"]');
             assignedEquiposElements.forEach(selectElement => {
@@ -356,21 +338,9 @@
                     totalValorEquipos += parseFloat(equipo.valor) * cantidad;
                 }
             });
-            totalPresupuesto += totalValorEquipos * 0.20; // 20% del valor total de los equipos
+            totalPresupuesto += totalValorEquipos * EQUIPMENT_VALUE_PERCENTAGE;
 
-            // 3. Aumento por Duración del Proyecto (Criterio: $50 por día)
-            if (projectDurationDays > 0) {
-                totalPresupuesto += projectDurationDays * 50; // $50 por día de duración del proyecto
-            }
-
-            // 4. Aumento por Personal Agregado (Criterio: $100 por persona por día)
-            const assignedPersonalElements = document.querySelectorAll('#personal-container select[name$="[staff_id]"]');
-            assignedPersonalElements.forEach(selectElement => {
-                if (selectElement.value && projectDurationDays > 0) {
-                    totalPresupuesto += projectDurationDays * 100; // $100 por persona por día
-                }
-            });
-
+            // Update the budget input field, formatted to 2 decimal places
             presupuestoInput.value = totalPresupuesto.toFixed(2);
         }
     </script>
