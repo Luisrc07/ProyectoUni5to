@@ -118,7 +118,7 @@
         </div>
         
         {{-- La tabla de equipos --}}
-        <x-table :headers="['Nombre', 'Descripción', 'Marca', 'Tipo de Equipo', 'Estado', 'Ubicación', 'Responsable','Valor', 'Acciones']">
+        <x-table :headers="['Nombre', 'Descripción', 'Marca', 'Tipo de Equipo', 'Estado', 'Ubicación', 'Responsable','Cantidad','Valor', 'Acciones']">
             <tbody class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
                 @forelse ($equipos as $equipo)
                     @include('components.equipos.table-row', ['item' => $equipo, 'route_prefix' => 'equipos'])
