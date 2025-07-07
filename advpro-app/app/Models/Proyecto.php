@@ -10,13 +10,13 @@ class Proyecto extends Model
     use HasFactory;
 
     protected $fillable = [
-        'nombre', 'descripcion', 'fecha_inicio', 'fecha_fin', 'presupuesto',
+        'nombre', 'descripcion', 'duracion_estimada_minutos', 'presupuesto',
         'estado', 'lugar', 'responsable_id'
     ];
 
     protected $casts = [
-        'fecha_inicio' => 'date',
-        'fecha_fin' => 'date',
+        // 'fecha_inicio' => 'date', // Eliminado
+        // 'fecha_fin' => 'date',   // Eliminado
     ];
 
     /**
@@ -53,4 +53,3 @@ class Proyecto extends Model
                     ->withPivot('id', 'cantidad', 'fecha_asignacion', 'fecha_fin_asignacion');
     }
 }
-
