@@ -25,6 +25,12 @@
         {{ $item->responsableStaff->nombre ?? 'N/A' }}
     </td>
     <td class="px-4 py-3 text-sm truncate">
+<<<<<<< HEAD
+=======
+        {{ number_format($item->cantidad) }}
+    </td>
+    <td class="px-4 py-3 text-sm truncate">
+>>>>>>> origin/LuisDev
         ${{ number_format($item->valor, 2) }}
     </td>
     <td class="px-4 py-3">
@@ -49,5 +55,9 @@
                 </button>
             </form>
         </div>
+<<<<<<< HEAD
     </td>
+=======
+    </td>
+>>>>>>> origin/LuisDev
 </tr>

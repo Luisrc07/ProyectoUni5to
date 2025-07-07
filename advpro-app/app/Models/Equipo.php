@@ -18,10 +18,9 @@ class Equipo extends Model
         'descripcion',
         'marca',
         'valor',
-        'estado',
-        'tipo_equipo',
-        'ubicacion',
-        'responsable',
+        'cantidad',
+        'responsable', // Es una foreign key, por lo tanto, es un ID
+
     ];
 
     protected $casts = [
@@ -36,13 +35,10 @@ class Equipo extends Model
         return $this->belongsTo(Staff::class, 'responsable', 'id');
     }
 
-    /**
-     * Relación polimórfica inversa: Un equipo puede estar asignado a muchos proyectos.
-     * Si no usas esta relación, puedes eliminarla.
-     */
     public function proyectosAsignado()
     {
         return $this->morphToMany(Proyecto::class, 'asignable', 'proyecto_recursos', 'asignable_id', 'proyecto_id')
                      ->withPivot('id', 'cantidad', 'fecha_asignacion', 'fecha_fin_asignacion');
     }
+
 }

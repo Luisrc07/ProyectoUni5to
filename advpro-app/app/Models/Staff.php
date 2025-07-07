@@ -20,6 +20,7 @@ class Staff extends Model
         'cargo',
         'tipo_documento',
         'direccion' // Asegúrate de que 'direccion' esté aquí si lo necesitas y es nullable en DB
+
     ];
 
     protected $casts = [

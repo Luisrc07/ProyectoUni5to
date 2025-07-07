@@ -119,6 +119,7 @@ class EquipoController extends Controller
             'estado' => 'required|string|in:Nuevo,Usado,Reparado',
             'ubicacion' => 'required|string|max:255',
             'responsable' => 'nullable|exists:staff,id',
+            'cantidad' => 'required|integer|min:1|max:50',
             'valor' => 'required|numeric|min:0',
         ]);
 
@@ -163,14 +164,15 @@ class EquipoController extends Controller
     public function update(Request $request, Equipo $equipo)
     {
         $validatedData = $request->validate([
-            'nombre' => 'sometimes|required|string|max:255',
-            'descripcion' => 'nullable|string|max:500',
-            'marca' => 'sometimes|required|string|max:255',
-            'tipo_equipo' => 'sometimes|required|string|max:255',
-            'estado' => 'sometimes|required|string|in:Nuevo,Usado,Reparado',
-            'ubicacion' => 'sometimes|required|string|max:255',
+            'nombre' => 'sometimes|string|max:255',
+            'descripcion' => 'nullable|string',
+            'marca' => 'sometimes|string|max:255',
+            'tipo_equipo' => 'sometimes|string|max:255',
+            'estado' => 'sometimes|string|in:Nuevo,Usado,Reparado',
+            'ubicacion' => 'sometimes|string|max:255',
             'responsable' => 'nullable|exists:staff,id',
-            'valor' => 'sometimes|required|numeric|min:0',
+            'cantidad' => 'required|integer|min:1|max:50',
+            'valor' => 'sometimes|numeric|min:0',
         ]);
 
         $equipo->update($validatedData);

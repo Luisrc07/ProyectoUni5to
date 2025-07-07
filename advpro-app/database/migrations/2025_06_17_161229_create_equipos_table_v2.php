@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('tipo_equipo');
             $table->string('estado'); 
             $table->string('ubicacion');
+            $table->integer('cantidad');
             $table->decimal('valor');
             $table->foreignId('responsable')->nullable()->constrained('staff')->onDelete('set null'); 
             $table->timestamps();
