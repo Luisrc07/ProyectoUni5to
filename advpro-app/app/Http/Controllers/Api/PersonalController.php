@@ -37,7 +37,7 @@ class PersonalController extends Controller
         }
 
         // Obtener resultados con paginación
-        $staff = $query->paginate(10);
+        $staff = $query->paginate(5);
 
         // Retorna JSON para API o la vista para la web
         return $request->wantsJson()

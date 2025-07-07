@@ -13,7 +13,7 @@ class ContratoController extends Controller
 {
     public function index(Request $request)
     {
-        $contratos = Contrato::with(['cliente', 'proyecto'])->paginate(10);
+        $contratos = Contrato::with(['cliente', 'proyecto'])->paginate(5);
         $clientes = Cliente::all();
         $proyectos = Proyecto::all();
 

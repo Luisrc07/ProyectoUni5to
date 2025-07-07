@@ -55,7 +55,7 @@ class EquipoController extends Controller
         // ---------------------------------
 
         // 3. Ejecutar la consulta y paginar los resultados
-        $equipos = $query->paginate(10)->appends($request->query());
+        $equipos = $query->paginate(5)->appends($request->query());
         
         // Obtener la lista de personal para el filtro
         $personal = Staff::all(['id', 'nombre']);
