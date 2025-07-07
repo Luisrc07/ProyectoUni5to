@@ -17,14 +17,10 @@ class Equipo extends Model
         'nombre',
         'descripcion',
         'marca',
-        'modelo',
-        'numero_serie',
-        'fecha_adquisicion',
-        'valor',
-        'estado',
         'tipo_equipo',
+        'estado',
         'ubicacion',
-        'disponibilidad',
+        'valor',
         'responsable', // Este es 'responsable' de la tabla equipos, que es un staff_id
     ];
 

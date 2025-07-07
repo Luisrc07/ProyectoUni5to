@@ -13,7 +13,7 @@ class Staff extends Model
 
     protected $fillable = [
         'nombre', 'documento', 'cargo', 'departamento', 'fecha_contratacion',
-        'salario', 'estado', 'email', 'telefono'
+        'salario', 'estado', 'email', 'telefono', 'tipo_documento', 'direccion'
     ];
 
     protected $casts = [
