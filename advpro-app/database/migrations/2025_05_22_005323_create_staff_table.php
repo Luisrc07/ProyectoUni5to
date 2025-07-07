@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('nombre');
             $table->string('email')->unique();
             $table->string('telefono');
-            $table->string('direccion');
+            $table->string('direccion')->nullable();
             $table->string('cargo')->nullable();
             $table->string('estado')->default('Activo'); 
             $table->timestamps();
