@@ -50,6 +50,22 @@
                             </label>
                         </div>
 
+                        {{-- Nuevos campos para Fecha de Inicio Estimada y Fecha de Fin Estimada --}}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                            <label class="block relative">
+                                <span class="flex items-center mb-1 text-gray-600 text-xs font-medium dark:text-gray-400">Fecha de Inicio Estimada</span>
+                                <input type="date" name="fecha_inicio_estimada"
+                                    class="block w-full h-9 px-4 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-input text-sm"
+                                    value="{{ old('fecha_inicio_estimada', $proyecto->fecha_inicio_estimada ?? '') }}" />
+                            </label>
+                            <label class="block relative">
+                                <span class="flex items-center mb-1 text-gray-600 text-xs font-medium dark:text-gray-400">Fecha de Fin Estimada</span>
+                                <input type="date" name="fecha_fin_estimada"
+                                    class="block w-full h-9 px-4 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-input text-sm"
+                                    value="{{ old('fecha_fin_estimada', $proyecto->fecha_fin_estimada ?? '') }}" />
+                            </label>
+                        </div>
+
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4"> {{-- Gap y margen inferior reducidos --}}
                             {{-- Estado --}}
                             <label class="block relative">

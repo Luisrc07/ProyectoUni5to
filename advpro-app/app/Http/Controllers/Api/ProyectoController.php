@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api; // Asegúrate de que el namespace sea correcto
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Proyecto;
-use App\Models\Staff;
-use App\Models\Equipo;
-use App\Models\ProyectoRecurso;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Carbon\Carbon;
+use App\Models\Staff; // Importa el modelo Staff
+use App\Models\Equipo; // Importa el modelo Equipo
+use App\Models\ProyectoRecurso; // Importa el modelo ProyectoRecurso
+use Illuminate\Http\Request;
+use Carbon\Carbon; // Asegúrate de importar Carbon
+use Barryvdh\DomPDF\Facade\Pdf; // Importa la fachada de DomPDF
 
 class ProyectoController extends Controller
 {
@@ -113,11 +113,13 @@ class ProyectoController extends Controller
         $validatedData = $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'duracion_estimada_minutos' => 'required|integer|min:1', // Nuevo campo
+            'duracion_estimada_minutos' => 'required|integer|min:1',
             'presupuesto' => 'nullable|numeric|min:0',
             'estado' => 'required|string|in:En espera,En proceso,Realizado',
             'lugar' => 'nullable|string|max:255',
             'responsable_id' => 'nullable|exists:staff,id',
+            'fecha_inicio_estimada' => 'nullable|date', // Validación para fecha de inicio estimada del proyecto
+            'fecha_fin_estimada' => 'nullable|date|after_or_equal:fecha_inicio_estimada', // Validación para fecha de fin estimada del proyecto
 
             // Validaciones para recursos de personal
             'recursos_personal' => 'nullable|array',
@@ -132,6 +134,10 @@ class ProyectoController extends Controller
         // Crear el proyecto
         $proyecto = Proyecto::create($validatedData);
 
+        // Obtener las fechas estimadas del proyecto
+        $fechaInicioProyecto = $validatedData['fecha_inicio_estimada'] ?? null;
+        $fechaFinProyecto = $validatedData['fecha_fin_estimada'] ?? null;
+
         // Guardar personal asignado usando la relación polimórfica
         if (isset($validatedData['recursos_personal'])) {
             foreach ($validatedData['recursos_personal'] as $recursoPersonal) {
@@ -139,10 +145,10 @@ class ProyectoController extends Controller
                     'proyecto_id' => $proyecto->id,
                     'asignable_id' => $recursoPersonal['staff_id'],
                     'asignable_type' => Staff::class,
-                    'cantidad' => null, // Asegura que 'cantidad' sea null para personal
-                    // Las fechas de asignación de personal se derivan del proyecto
-                    'fecha_asignacion' => Carbon::now(),
-                    'fecha_fin_asignacion' => Carbon::now()->addMinutes($proyecto->duracion_estimada_minutos),
+                    'cantidad' => null, // 'cantidad' es null para personal
+                    // Las fechas de asignación de personal se toman de las fechas estimadas del proyecto
+                    'fecha_asignacion' => $fechaInicioProyecto,
+                    'fecha_fin_asignacion' => $fechaFinProyecto,
                 ]);
             }
         }
@@ -155,9 +161,9 @@ class ProyectoController extends Controller
                     'asignable_id' => $recursoEquipo['equipo_id'],
                     'asignable_type' => Equipo::class,
                     'cantidad' => $recursoEquipo['cantidad'] ?? null,
-                    // Las fechas de asignación de equipo se derivan del proyecto
-                    'fecha_asignacion' => Carbon::now(),
-                    'fecha_fin_asignacion' => Carbon::now()->addMinutes($proyecto->duracion_estimada_minutos),
+                    // Las fechas de asignación de equipo se toman de las fechas estimadas del proyecto
+                    'fecha_asignacion' => $fechaInicioProyecto,
+                    'fecha_fin_asignacion' => $fechaFinProyecto,
                 ]);
             }
         }
@@ -210,11 +216,13 @@ class ProyectoController extends Controller
         $validatedData = $request->validate([
             'nombre' => 'sometimes|string|max:255',
             'descripcion' => 'nullable|string',
-            'duracion_estimada_minutos' => 'sometimes|integer|min:1', // Nuevo campo
+            'duracion_estimada_minutos' => 'sometimes|integer|min:1',
             'presupuesto' => 'nullable|numeric|min:0',
             'estado' => 'sometimes|string|in:En espera,En proceso,Realizado',
             'lugar' => 'nullable|string|max:255',
             'responsable_id' => 'nullable|exists:staff,id',
+            'fecha_inicio_estimada' => 'nullable|date', // Validación para fecha de inicio estimada del proyecto
+            'fecha_fin_estimada' => 'nullable|date|after_or_equal:fecha_inicio_estimada', // Validación para fecha de fin estimada del proyecto
 
             // Validaciones para recursos de personal
             'recursos_personal' => 'nullable|array',
@@ -230,14 +238,18 @@ class ProyectoController extends Controller
 
         $proyecto->update($validatedData);
 
+        // Obtener las fechas estimadas del proyecto (ya actualizadas por el $proyecto->update($validatedData))
+        $fechaInicioProyecto = $proyecto->fecha_inicio_estimada;
+        $fechaFinProyecto = $proyecto->fecha_fin_estimada;
+
         // Sincronizar o actualizar recursos
-        // Primero, elimina los recursos que ya no están presentes en la solicitud
-        $currentResourceIds = $proyecto->recursos->pluck('id')->toArray();
+        // Primero, identifica los IDs de los recursos que deben permanecer
         $newPersonalResourceIds = collect($validatedData['recursos_personal'] ?? [])->pluck('id')->filter()->toArray();
         $newEquipoResourceIds = collect($validatedData['recursos_equipos'] ?? [])->pluck('id')->filter()->toArray();
+        $allNewResourceIds = array_merge($newPersonalResourceIds, $newEquipoResourceIds);
 
-        $resourcesToDelete = array_diff($currentResourceIds, array_merge($newPersonalResourceIds, $newEquipoResourceIds));
-        ProyectoRecurso::whereIn('id', $resourcesToDelete)->delete();
+        // Elimina los recursos existentes que no están en la solicitud
+        $proyecto->recursos()->whereNotIn('id', $allNewResourceIds)->delete();
 
         // Actualizar o crear personal asignado
         if (isset($validatedData['recursos_personal'])) {
@@ -247,10 +259,10 @@ class ProyectoController extends Controller
                     [
                         'asignable_id' => $recursoPersonal['staff_id'],
                         'asignable_type' => Staff::class,
-                        'cantidad' => null, // Asegura que 'cantidad' sea null para personal
-                        // Las fechas de asignación de personal se derivan del proyecto
-                        'fecha_asignacion' => Carbon::now(),
-                        'fecha_fin_asignacion' => Carbon::now()->addMinutes($proyecto->duracion_estimada_minutos),
+                        'cantidad' => null, // 'cantidad' es null para personal
+                        // Las fechas de asignación de personal se toman de las fechas estimadas del proyecto
+                        'fecha_asignacion' => $fechaInicioProyecto,
+                        'fecha_fin_asignacion' => $fechaFinProyecto,
                     ]
                 );
             }
@@ -265,9 +277,9 @@ class ProyectoController extends Controller
                         'asignable_id' => $recursoEquipo['equipo_id'],
                         'asignable_type' => Equipo::class,
                         'cantidad' => $recursoEquipo['cantidad'] ?? null,
-                        // Las fechas de asignación de equipo se derivan del proyecto
-                        'fecha_asignacion' => Carbon::now(),
-                        'fecha_fin_asignacion' => Carbon::now()->addMinutes($proyecto->duracion_estimada_minutos),
+                        // Las fechas de asignación de equipo se toman de las fechas estimadas del proyecto
+                        'fecha_asignacion' => $fechaInicioProyecto,
+                        'fecha_fin_asignacion' => $fechaFinProyecto,
                     ]
                 );
             }

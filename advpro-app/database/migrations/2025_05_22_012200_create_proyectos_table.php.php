@@ -8,24 +8,26 @@ return new class extends Migration
 {
     /**
      * Ejecuta las migraciones.
-     * Crea la tabla 'proyectos' con sus columnas y claves foráneas, sin la relación con 'clientes'.
+     * Crea la tabla 'proyectos' con sus columnas y claves foráneas.
      */
     public function up(): void
     {
         Schema::create('proyectos', function (Blueprint $table) {
-            $table->id()->autoIncrement();
+            $table->id(); // Crea una columna 'id' auto-incrementable y clave primaria
             $table->string('nombre');
-            $table->string('descripcion');
-            $table->date('fecha_inicio'); // Usar date() para fechas
-            $table->date('fecha_fin');    // Usar date() para fechas
-            $table->decimal('presupuesto', 10, 2); // Usar decimal() para presupuesto
+            $table->text('descripcion'); // Cambiado a 'text' para descripciones más largas
+            $table->integer('duracion_estimada_minutos'); // Añadido para coincidir con el formulario y el modelo
+            $table->decimal('presupuesto', 10, 2); // 'decimal' es ideal para valores monetarios
             $table->string('estado');
-            $table->string('lugar');
+            $table->string('lugar')->nullable(); // 'lugar' es opcional en el formulario
+            $table->date('fecha_inicio_estimada')->nullable(); // Añadido: fecha de inicio estimada (opcional)
+            $table->date('fecha_fin_estimada')->nullable(); // Añadido: fecha de fin estimada (opcional)
 
             // Columna y clave foránea para el responsable del proyecto (staff)
-            $table->foreignId('responsable_id')->nullable()->constrained('staff')->onDelete('set null'); 
-            
-            $table->timestamps(); // created_at y updated_at
+            // Si el staff es eliminado, el responsable_id en proyectos se establecerá a null
+            $table->foreignId('responsable_id')->nullable()->constrained('staff')->onDelete('set null');
+
+            $table->timestamps(); // Añade las columnas 'created_at' y 'updated_at'
         });
     }
 
@@ -38,3 +40,4 @@ return new class extends Migration
         Schema::dropIfExists('proyectos');
     }
 };
+
