@@ -38,11 +38,15 @@
 
         <div class="section">
             <p>
-                Entre: <strong>AudiovisualPro C.A.</strong>, RIF J-12345678-9, con domicilio en Barquisimeto, Estado Lara, representada en este acto por su Director General, quien en lo sucesivo se denominará "El Prestador",
+                Entre: <strong>AudiovisualPro C.A.</strong>, RIF J-12345678-9, con domicilio en Barquisimeto, 
+                Estado Lara, representada en este acto por su Director General, quien en lo sucesivo se denominará 
+                "El Prestador", y <strong>{{ $contrato->cliente->nombre }}</strong>, 
+                titular de la cédula de identidad N° {{ $contrato->cliente->documento ?? '[C.I.]' }},
+                 con domicilio en {{ $contrato->cliente->direccion ?? '[Dirección]' }},
+                  quien en lo sucesivo se denominará "El Cliente",
+
             </p>
-            <p>
-                y <strong>{{ $contrato->cliente->nombre }}</strong>, titular de la cédula de identidad N° {{ $contrato->cliente->cedula ?? '[C.I.]' }}, con domicilio en {{ $contrato->cliente->direccion ?? '[Dirección]' }}, quien en lo sucesivo se denominará "El Cliente",
-            </p>
+           
             <p>
                 se acuerda lo siguiente:
             </p>
@@ -108,7 +112,11 @@
                 <br><br>
                 <p>__________________________</p>
                 <p><strong>Nombre:</strong> {{ $contrato->cliente->nombre }}</p>
-                <p><strong>C.I.:</strong> {{ $contrato->cliente->cedula ?? '________________' }}</p>
+                <p><strong>C.I.:</strong> {{ $contrato->cliente->documento ?? '________________' }}</p>
+
+
+
+                <p>Serial Unico De Contrato : {{ $contrato->serial }} </p>
             </div>
         </div>
     </div>
