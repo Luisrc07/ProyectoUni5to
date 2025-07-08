@@ -17,11 +17,14 @@
     </td>
     <td class="px-4 py-3 text-sm">
         <span class="inline-block px-2 py-1 font-semibold leading-tight rounded-full
-            {{ $item->estado == 'activo' ? 'text-green-700 bg-green-100' : 
-               ($item->estado == 'inactivo' ? 'text-red-700 bg-red-100' : 
+            {{ $item->estado == 'activo' ? 'text-green-700 bg-green-100' :
+               ($item->estado == 'inactivo' ? 'text-red-700 bg-red-100' :
                'text-yellow-700 bg-yellow-100') }}">
             {{ ucfirst($item->estado) }}
         </span>
+    </td>
+    <td class="px-4 py-3 text-sm"> {{-- Nueva columna para el serial --}}
+        {{ $item->serial }}
     </td>
     <td class="px-4 py-3">
         <div class="flex items-center space-x-4 text-sm">
@@ -31,7 +34,7 @@
                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
                 </svg>
             </a>
-            
+
             <form action="{{ route($route_prefix . '.destroy', $item->id) }}" method="POST" class="inline">
                 @csrf
                 @method('DELETE')
