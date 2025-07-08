@@ -88,9 +88,8 @@
                             <span class="bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100 px-3 py-1 rounded-full flex items-center gap-1">
                                 {{ ucfirst(str_replace(['_id', '_', '_min', '_max'], ['',' ', ' Mín.', ' Máx.'], $key)) }}:
                                 <span class="font-bold">
-                                    @if (Str::contains($key, 'fecha'))
-                                        {{ \Carbon\Carbon::parse($value)->format('d/m/Y') }}
-                                    @elseif (Str::contains($key, 'presupuesto'))
+                                    {{-- Eliminado el bloque de fecha ya que los proyectos no tienen fechas --}}
+                                    @if (Str::contains($key, 'presupuesto'))
                                         ${{ number_format($value, 2, ',', '.') }}
                                     @elseif ($key == 'responsable_id')
                                         {{ $personal->find($value)->nombre ?? 'N/A' }}
@@ -109,12 +108,14 @@
             </div>
         @endif
 
-        <x-table :headers="['Nombre', 'Descripción', 'Estado', 'Inicio', 'Fin', 'Presupuesto', 'Lugar', 'Responsable', 'Personal Asignado', 'Equipos Asignados', 'Opciones']">
+        {{-- Se actualizan los headers, con 'Duracion Est. Min.' movido y el colspan ajustado --}}
+        <x-table :headers="['Nombre', 'Descripción', 'Estado', 'Duracion Est. Min.', 'Presupuesto', 'Lugar', 'Responsable', 'Personal Asignado', 'Equipos Asignados', 'Opciones']">
             @forelse ($proyectos as $project)
                 @include('components.proyectos.table-row', ['item' => $project, 'route_prefix' => 'proyectos'])
             @empty
                 <tr class="text-gray-700 dark:text-gray-400">
-                    <td class="px-4 py-3 text-center" colspan="11">No hay proyectos para mostrar.</td>
+                    {{-- El colspan debe ser 10, ya que ahora hay 10 columnas en total (9 de tu lista original + la nueva 'Duracion Est. Min.') --}}
+                    <td class="px-4 py-3 text-center" colspan="10">No hay proyectos para mostrar.</td>
                 </tr>
             @endforelse
         </x-table>
@@ -163,6 +164,7 @@
                         Filtrar Proyectos
                     </p>
                     <form action="{{ route('proyectos.index') }}" method="GET" id="filter-form">
+                        {{-- Asegúrate de que 'personal' y 'equipos' se estén pasando correctamente a filter-form-fields --}}
                         @include('components.proyectos.filter-form-fields', compact('personal', 'equipos'))
                     </form>
                 </div>
