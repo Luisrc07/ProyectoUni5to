@@ -22,7 +22,8 @@ use App\Http\Controllers\Api\ContabilidadController;
 | - Cualquier otra ruta desconocida dispara el fallback.
 |
 */
-Auth::routes(); 
+Auth::routes();
+
 // 1. Ruta raíz para invitados: redirige a /login.
 //    Si ya estás autenticado, el middleware 'guest' te enviará a /home.
 Route::get('/', function () {
@@ -30,8 +31,7 @@ Route::get('/', function () {
 })->middleware('guest')->name('root');
 
 
-
-// 2. Rutas de autenticación (guest)
+// 2. Rutas de autenticación (guest) - Solo accesibles para usuarios no autenticados
 Route::middleware('guest')->group(function () {
     // Login
     Route::get('/login',  [AuthController::class, 'showLogin'])->name('login');
@@ -45,7 +45,7 @@ Route::middleware('guest')->group(function () {
 });
 
 
-// 3. Rutas protegidas (auth)
+// 3. Rutas protegidas (auth) - Solo accesibles para usuarios autenticados
 Route::middleware('auth')->group(function () {
     // Dashboard / Home
     Route::get('/home',           [DashboardController::class, 'index'])->name('home');
@@ -59,37 +59,38 @@ Route::middleware('auth')->group(function () {
     Route::get('equipos/reporte',       [EquipoController::class,   'generarReporte'])->name('equipos.reporte');
     Route::get('proyectos/exportar-pdf', [ProyectoController::class,'exportarPdf'])->name('proyectos.exportar-pdf');
     Route::get('personal/reporte-pdf',   [PersonalController::class,'exportarPdf'])->name('personal.exportar-pdf');
+    
+    // Nueva ruta para generar el PDF del contrato
+    Route::get('contratos/{contrato}/pdf', [ContratoController::class, 'generarPdf'])->name('contratos.pdf');
+
 
     // Recursos (CRUD completo para cada modelo)
-    // Las rutas 'create' y 'store' para proyectos son generadas por Route::resource
+    // Estas rutas generarán métodos como index, create, store, show, edit, update, destroy.
     Route::resource('clientes',  ClienteController::class);
     Route::resource('contratos', ContratoController::class);
-    Route::resource('proyectos', ProyectoController::class); // Esta línea ya incluye /proyectos/create y POST /proyectos
+    Route::resource('proyectos', ProyectoController::class);
     Route::resource('personal',  PersonalController::class);
     Route::resource('equipos',   EquipoController::class);
 
-    
-});
-//Contabilidad
-    //(Se usa prefix para poder manejar mas funciones en el controlador
-    //Fuera de los predefinidos, y el manejo de varios modelos.)
+    // Contabilidad
+    // (Se usa prefix para poder manejar mas funciones en el controlador
+    // Fuera de los predefinidos, y el manejo de varios modelos.)
     Route::prefix('contabilidad')->group(function () {
-    
-    // Ruta para el panel principal de contabilidad
-    Route::get('panel', [ContabilidadController::class, 'index'])->name('contabilidad.index');
+        // Ruta para el panel principal de contabilidad
+        Route::get('panel', [ContabilidadController::class, 'index'])->name('contabilidad.index');
 
-    // Ruta para guardar un nuevo asiento contable
-    Route::post('asientos', [ContabilidadController::class, 'store'])->name('contabilidad.store');
+        // Ruta para guardar un nuevo asiento contable
+        Route::post('asientos', [ContabilidadController::class, 'store'])->name('contabilidad.store');
 
-    // Ruta: Para guardar una nueva cuenta contable
-    Route::post('cuentas', [ContabilidadController::class, 'storeCuenta'])->name('contabilidad.cuentas.store');
-});
+        // Ruta: Para guardar una nueva cuenta contable
+        Route::post('cuentas', [ContabilidadController::class, 'storeCuenta'])->name('contabilidad.cuentas.store');
+    }); // Cierre correcto del grupo 'contabilidad'
+}); // Cierre correcto del grupo 'auth'
 
-// 4. Ruta pública de bienvenida
+// 4. Ruta pública de bienvenida (accesible para todos)
 Route::get('/welcome', fn() => view('welcome'))->name('welcome');
 
 
-// 5. Fallback: cualquier otra URI redirige a la raíz (`/`),
+// 5. Fallback: cualquier otra URI desconocida redirige a la raíz (`/`),
 //    que a su vez enviará al invitado al login, o al usuario autenticado al home.
 Route::fallback(fn() => redirect()->route('root'));
-
