@@ -15,8 +15,10 @@ class Proyecto extends Model
     ];
 
     protected $casts = [
-        // 'fecha_inicio' => 'date', // Eliminado
-        // 'fecha_fin' => 'date',   // Eliminado
+        'duracion_estimada_minutos' => 'integer', // ¡Añade esta línea!
+        'presupuesto' => 'float', // También es buena práctica para decimales
+        'fecha_inicio_estimada' => 'date', // Si vas a usar estos campos
+        'fecha_fin_estimada' => 'date',   // Si vas a usar estos campos
     ];
 
     /**
