@@ -3,14 +3,18 @@
         <div class="max-w-2xl p-4 bg-white rounded-lg shadow-md dark:bg-gray-800 w-full mx-auto"> {{-- Max-width reducido a 2xl y padding a p-4 --}}
             <div class="mb-4"> {{-- Margen inferior reducido --}}
                 <div class="flex justify-between items-center mb-4"> {{-- Margen inferior reducido --}}
-                    <p class="text-xl font-semibold text-gray-800 dark:text-gray-300">Crear Nuevo Proyecto</p> {{-- Tamaño de texto reducido --}}
+                    <p class="text-xl font-semibold text-gray-800 dark:text-gray-300">{{ isset($proyecto) && $proyecto->id ? 'Editar Proyecto' : 'Crear Nuevo Proyecto' }}</p> {{-- Título dinámico --}}
                     <a href="{{ route('proyectos.index') }}" class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"> {{-- Tamaño de texto reducido --}}
                         Volver al Panel
                     </a>
                 </div>
 
-                <form action="{{ route('proyectos.store') }}" method="POST" id="create-project-form-page">
+                {{-- Formulario: action dinámico para crear o actualizar --}}
+                <form action="{{ isset($proyecto) && $proyecto->id ? route('proyectos.update', $proyecto->id) : route('proyectos.store') }}" method="POST" id="project-form-page">
                     @csrf
+                    @if(isset($proyecto) && $proyecto->id)
+                        @method('PUT') {{-- Método PUT para actualizaciones --}}
+                    @endif
 
                     {{-- Sección de Errores de Validación --}}
                     @if ($errors->any())
@@ -75,8 +79,6 @@
                             </label>
                         </div>
 
-                        
-
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4"> {{-- Gap y margen inferior reducidos --}}
                             {{-- Estado --}}
                             <label class="block relative">
@@ -86,6 +88,7 @@
                                     <option value="En espera" {{ old('estado', $proyecto->estado ?? '') == 'En espera' ? 'selected' : '' }}>En espera</option>
                                     <option value="En proceso" {{ old('estado', $proyecto->estado ?? '') == 'En proceso' ? 'selected' : '' }}>En proceso</option>
                                     <option value="Realizado" {{ old('estado', $proyecto->estado ?? '') == 'Realizado' ? 'selected' : '' }}>Realizado</option>
+                                    <option value="Finalizado" {{ old('estado', $proyecto->estado ?? '') == 'Finalizado' ? 'selected' : '' }}>Finalizado</option> {{-- Nuevo estado --}}
                                 </select>
                                 @error('estado')
                                     <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
@@ -110,7 +113,7 @@
                             <label class="block relative">
                                 <span class="flex items-center mb-1 text-gray-600 text-xs font-medium dark:text-gray-400">Responsable</span> {{-- Tamaño de texto reducido --}}
                                 <select name="responsable_id"
-                                    class="block w-full h-9 px-4 py-2 border {{ $errors->has('responsable_id') ? 'border-red-500' : 'border-gray-300' }} rounded-md focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-select text-sm"> {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
+                                    class="block w-full h-9 px-4 py-2 border {{ $errors->has('responsable_id') ? 'border-red-500' : 'border-gray-300' }} rounded-md focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-select text-sm" required> {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
                                     <option value="" disabled {{ old('responsable_id', $proyecto->responsable_id ?? '') ? '' : 'selected' }}>Seleccione un responsable</option>
                                     @foreach ($personal as $person)
                                         <option value="{{ $person->id }}" {{ old('responsable_id', $proyecto->responsable_id ?? '') == $person->id ? 'selected' : '' }}>
@@ -206,7 +209,8 @@
                     addPersonal(null, p.staff_id);
                 }
             });
-            personalIndex = Math.max(initialPersonal.length, oldPersonal.length); // Ajusta el índice
+            // Ajustar el índice para nuevas adiciones
+            personalIndex = Math.max(initialPersonal.length, oldPersonal.length);
 
             // Cargar equipos existentes (desde $proyecto)
             initialEquipos.forEach(e => {
@@ -218,7 +222,8 @@
                     addEquipo(null, e.equipo_id, e.cantidad);
                 }
             });
-            equipoIndex = Math.max(initialEquipos.length, oldEquipos.length); // Ajusta el índice
+            // Ajustar el índice para nuevas adiciones
+            equipoIndex = Math.max(initialEquipos.length, oldEquipos.length);
 
 
             calculatePresupuesto(); // Calcular presupuesto inicial
@@ -272,7 +277,7 @@
                 allEquipos.forEach(e => {
                     const option = document.createElement('option');
                     option.value = e.id;
-                    option.textContent = `${e.nombre} (${e.marca})`;
+                    option.textContent = `${e.nombre} (${e.marca}) - Stock: ${e.stock}`; // Mostrar stock
                     // Deshabilitar si ya está seleccionado en otro lugar y no es la opción actual
                     if (selectedEquipoIds.has(e.id) && e.id != currentSelectedValue) {
                         option.disabled = true;
@@ -329,7 +334,7 @@
                     <select name="recursos_equipos[${equipoIndex}][equipo_id]" onchange="calculatePresupuesto(); updateAllSelectOptions();"
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" required> {{-- Tamaño de texto reducido --}}
                         <option value="" disabled ${equipo_id ? '' : 'selected'}>Seleccione equipo</option>
-                        ${allEquipos.map(e => `<option value="${e.id}" ${e.id == equipo_id ? 'selected' : ''}>${e.nombre} (${e.marca})</option>`).join('')}
+                        ${allEquipos.map(e => `<option value="${e.id}" ${e.id == equipo_id ? 'selected' : ''}>${e.nombre} (${e.marca}) - Stock: ${e.stock}</option>`).join('')}
                     </select>
                 </div>
                 <div class="w-full md:w-1/2 lg:w-1/3">

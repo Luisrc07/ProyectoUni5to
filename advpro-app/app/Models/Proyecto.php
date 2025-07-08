@@ -46,8 +46,8 @@ class Proyecto extends Model
     }
 
     // Si no usas esta relación, puedes eliminarla por completo
-    // public function recursosProyectoRecurso()
-    // {
-    //     return $this->hasMany(ProyectoRecurso::class);
-    // }
+    public function recursosProyectoRecurso()
+    {
+         return $this->hasMany(ProyectoRecurso::class);
+    }
 }

@@ -1,18 +1,17 @@
 <?php
 
-namespace App\Http\Controllers\Api; // Asegúrate de que el namespace sea correcto
+namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Proyecto;
-use App\Models\Staff; // Importa el modelo Staff
-use App\Models\Equipo; // Importa el modelo Equipo
-use App\Models\ProyectoRecurso; // Importa el modelo ProyectoRecurso
+use App\Models\Staff;
+use App\Models\Equipo;
+use App\Models\ProyectoRecurso;
 use Illuminate\Http\Request;
-// use Carbon\Carbon; // Ya no es necesario si no se trabajan con fechas --> ¡Mantener comentado o eliminar!
-use Barryvdh\DomPDF\Facade\Pdf; // Importa la fachada de DomPDF
-use Illuminate\Support\Facades\DB; // Para transacciones
-use App\Http\Requests\StoreProyectoRequest; // Importa el Form Request
-use App\Http\Requests\UpdateProyectoRequest; // Importa el Form Request
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
+use App\Http\Requests\StoreProyectoRequest;
+use App\Http\Requests\UpdateProyectoRequest;
 
 class ProyectoController extends Controller
 {
@@ -54,7 +53,6 @@ class ProyectoController extends Controller
         // Filtro por personal asignado (si necesitas filtrar proyectos que tienen cierto personal)
         if ($request->filled('personal_asignado_id')) {
             $query->whereHas('personalAsignado', function ($q) use ($request) {
-                // Asegúrate de que 'staff.id' es la columna correcta en tu tabla de staff
                 $q->where('staff.id', $request->input('personal_asignado_id'));
             });
         }
@@ -62,7 +60,6 @@ class ProyectoController extends Controller
         // Filtro por equipo asignado (si necesitas filtrar proyectos que tienen cierto equipo)
         if ($request->filled('equipo_asignado_id')) {
             $query->whereHas('equiposAsignados', function ($q) use ($request) {
-                // Asegúrate de que 'equipos.id' es la columna correcta en tu tabla de equipos
                 $q->where('equipos.id', $request->input('equipo_asignado_id'));
             });
         }
@@ -131,29 +128,46 @@ class ProyectoController extends Controller
             // Crear el proyecto
             $proyecto = Proyecto::create($validatedData);
 
-            // Guardar personal asignado
-            if (!empty($validatedData['recursos_personal'])) {
-                foreach ($validatedData['recursos_personal'] as $recursoPersonal) {
-                    ProyectoRecurso::create([
-                        'proyecto_id' => $proyecto->id,
-                        'asignable_id' => $recursoPersonal['staff_id'],
-                        'asignable_type' => Staff::class,
-                        'cantidad' => null, // 'cantidad' es null para personal
-                    ]);
+            // --- Lógica para personal asignado ---
+            // Obtener el ID del responsable del proyecto
+            $responsableId = $validatedData['responsable_id'] ?? null;
+
+            // Obtener todos los IDs de personal de la solicitud
+            $requestedStaffIds = array_filter(array_column($validatedData['recursos_personal'] ?? [], 'staff_id'));
+
+            // Si hay un responsable y no está ya en la lista de personal asignado, añadirlo
+            if ($responsableId && !in_array($responsableId, $requestedStaffIds)) {
+                $requestedStaffIds[] = $responsableId;
+            }
+
+            // Eliminar duplicados si los hubiera (aunque 'distinct' en el request ya ayuda)
+            $requestedStaffIds = array_unique($requestedStaffIds);
+
+            // Sincronizar personal asignado
+            // El método sync eliminará las asignaciones antiguas que no estén en $requestedStaffIds
+            // y añadirá las nuevas.
+            $proyecto->personalAsignado()->sync($requestedStaffIds);
+
+            // --- Lógica para equipos asignados y actualización de stock ---
+            $equiposRecursos = $validatedData['recursos_equipos'] ?? [];
+            $syncEquipoData = [];
+
+            foreach ($equiposRecursos as $equipoData) {
+                if (isset($equipoData['equipo_id']) && isset($equipoData['cantidad'])) {
+                    $equipoId = $equipoData['equipo_id'];
+                    $cantidad = $equipoData['cantidad'];
+                    $syncEquipoData[$equipoId] = ['cantidad' => $cantidad];
+
+                    // Decrementar el stock del equipo (solo para nuevas asignaciones en 'store')
+                    $equipo = Equipo::find($equipoId);
+                    if ($equipo) {
+                        $equipo->decrement('stock', $cantidad);
+                    }
                 }
             }
 
-            // Guardar equipos asignados
-            if (!empty($validatedData['recursos_equipos'])) {
-                foreach ($validatedData['recursos_equipos'] as $recursoEquipo) {
-                    ProyectoRecurso::create([
-                        'proyecto_id' => $proyecto->id,
-                        'asignable_id' => $recursoEquipo['equipo_id'],
-                        'asignable_type' => Equipo::class,
-                        'cantidad' => $recursoEquipo['cantidad'], // La validación asegura que exista y sea válida
-                    ]);
-                }
-            }
+            // Sincronizar equipos asignados
+            $proyecto->equiposAsignados()->sync($syncEquipoData);
 
             DB::commit(); // Confirmar transacción
 
@@ -195,7 +209,7 @@ class ProyectoController extends Controller
     public function show(Proyecto $proyecto, Request $request)
     {
         // Cargar las relaciones de recursos
-        $proyecto->load(['personalAsignado', 'equiposAsignados']);
+        $proyecto->load(['responsable', 'personalAsignado', 'equiposAsignados']);
 
         return $request->wantsJson()
             ? response()->json($proyecto, 200)
@@ -237,37 +251,74 @@ class ProyectoController extends Controller
         DB::beginTransaction(); // Iniciar transacción
 
         try {
+            // Guardar el estado actual de las asignaciones de equipo para calcular el cambio de stock
+            $previousEquipmentAssignments = $proyecto->equiposAsignados->pluck('pivot.cantidad', 'id')->toArray();
+
             // Actualizar los datos del proyecto
             $proyecto->update($validatedData);
 
-            // --- Estrategia de Actualización de Recursos: Eliminar y Recrear (más simple para polimórficos) ---
-            // Eliminar todas las asignaciones de recursos existentes para este proyecto
-            // Esta relación asume que tienes un `hasMany` en tu modelo Proyecto a ProyectoRecurso
-            // Si el nombre de tu relación es diferente, ajústalo.
-            // Por ejemplo, si se llama 'recursosAsignados', sería $proyecto->recursosAsignados()->delete();
-            $proyecto->recursosProyectoRecurso()->delete(); // Confirma el nombre de esta relación en tu modelo Proyecto.
+            // --- Lógica para personal asignado ---
+            // Obtener el ID del responsable del proyecto
+            $responsableId = $validatedData['responsable_id'] ?? null;
 
-            // Recrear asignaciones de personal
-            if (!empty($validatedData['recursos_personal'])) {
-                foreach ($validatedData['recursos_personal'] as $recursoPersonal) {
-                    ProyectoRecurso::create([
-                        'proyecto_id' => $proyecto->id,
-                        'asignable_id' => $recursoPersonal['staff_id'],
-                        'asignable_type' => Staff::class,
-                        'cantidad' => null,
-                    ]);
+            // Obtener todos los IDs de personal de la solicitud
+            $requestedStaffIds = array_filter(array_column($validatedData['recursos_personal'] ?? [], 'staff_id'));
+
+            // Si hay un responsable y no está ya en la lista de personal asignado, añadirlo
+            if ($responsableId && !in_array($responsableId, $requestedStaffIds)) {
+                $requestedStaffIds[] = $responsableId;
+            }
+
+            // Eliminar duplicados si los hubiera (aunque 'distinct' en el request ya ayuda)
+            $requestedStaffIds = array_unique($requestedStaffIds);
+
+            // Sincronizar personal asignado
+            $proyecto->personalAsignado()->sync($requestedStaffIds);
+
+            // --- Lógica para equipos asignados y actualización de stock ---
+            $equiposRecursos = $validatedData['recursos_equipos'] ?? [];
+            $syncEquipoData = [];
+
+            foreach ($equiposRecursos as $equipoData) {
+                if (isset($equipoData['equipo_id']) && isset($equipoData['cantidad'])) {
+                    $equipoId = $equipoData['equipo_id'];
+                    $cantidad = $equipoData['cantidad'];
+                    $syncEquipoData[$equipoId] = ['cantidad' => $cantidad];
                 }
             }
 
-            // Recrear asignaciones de equipos
-            if (!empty($validatedData['recursos_equipos'])) {
-                foreach ($validatedData['recursos_equipos'] as $recursoEquipo) {
-                    ProyectoRecurso::create([
-                        'proyecto_id' => $proyecto->id,
-                        'asignable_id' => $recursoEquipo['equipo_id'],
-                        'asignable_type' => Equipo::class,
-                        'cantidad' => $recursoEquipo['cantidad'],
-                    ]);
+            // Sincronizar equipos asignados
+            $proyecto->equiposAsignados()->sync($syncEquipoData);
+
+            // --- Ajustar el stock de equipos después de la sincronización ---
+            $newAssignedEquipoIds = array_keys($syncEquipoData);
+
+            // Incrementar stock para equipos que fueron removidos del proyecto
+            foreach ($previousEquipmentAssignments as $equipoId => $oldQuantity) {
+                if (!in_array($equipoId, $newAssignedEquipoIds)) {
+                    $equipo = Equipo::find($equipoId);
+                    if ($equipo) {
+                        $equipo->increment('stock', $oldQuantity);
+                    }
+                }
+            }
+
+            // Ajustar stock para equipos que permanecen o son nuevos
+            foreach ($syncEquipoData as $equipoId => $pivotData) {
+                $newQuantity = $pivotData['cantidad'];
+                $equipo = Equipo::find($equipoId);
+
+                if ($equipo) {
+                    $oldQuantity = $previousEquipmentAssignments[$equipoId] ?? 0; // 0 si es una nueva asignación
+
+                    if ($newQuantity > $oldQuantity) {
+                        // Si la cantidad aumentó, decrementar stock
+                        $equipo->decrement('stock', $newQuantity - $oldQuantity);
+                    } elseif ($newQuantity < $oldQuantity) {
+                        // Si la cantidad disminuyó, incrementar stock
+                        $equipo->increment('stock', $oldQuantity - $newQuantity);
+                    }
+                    // Si newQuantity == oldQuantity, no se necesita cambio de stock para este ítem
                 }
             }
 
@@ -310,8 +361,20 @@ class ProyectoController extends Controller
      */
     public function destroy(Proyecto $proyecto, Request $request)
     {
+        DB::beginTransaction(); // Iniciar transacción para asegurar la consistencia del stock
+
         try {
-            $proyecto->delete(); // Esto debería disparar la eliminación en cascada si está configurada en la migración
+            // Antes de eliminar el proyecto, devolver el stock de los equipos asignados
+            foreach ($proyecto->equiposAsignados as $equipoAsignado) {
+                $equipo = Equipo::find($equipoAsignado->id);
+                if ($equipo) {
+                    $equipo->increment('stock', $equipoAsignado->pivot->cantidad);
+                }
+            }
+
+            $proyecto->delete(); // Esto debería disparar la eliminación en cascada de ProyectoRecurso
+
+            DB::commit(); // Confirmar transacción
 
             return $request->wantsJson()
                 ? response()->json(['message' => 'Proyecto eliminado correctamente.'], 204)
@@ -322,6 +385,7 @@ class ProyectoController extends Controller
                     'button' => 'Aceptar'
                 ]);
         } catch (\Exception $e) {
+            DB::rollBack(); // Revertir transacción
             \Log::error("Error al eliminar proyecto: " . $e->getMessage() . " en " . $e->getFile() . " línea " . $e->getLine());
 
             return $request->wantsJson()
