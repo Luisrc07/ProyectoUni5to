@@ -81,9 +81,6 @@
         </div>
 
         <div class="w-full relative mb-6">
-<<<<<<< HEAD
-            <label class="flex items-center mb-2 text-gray-600 text-sm font-medium">Valor del equipo</label>
-=======
             <label class="flex items-center mb-2 text-gray-600 text-sm font-medium">Cantidad</label>
             <input type="integer" name="cantidad" step="1"
                 class="block w-full h-11 px-5 py-2.5 bg-white shadow-xs text-gray-900 border border-gray-300 rounded-full placeholder-gray-400 focus:outline-none"
@@ -96,7 +93,6 @@
 
         <div class="w-full relative mb-6">
             <label class="flex items-center mb-2 text-gray-600 text-sm font-medium">Valor unitario</label>
->>>>>>> origin/LuisDev
             <input type="number" name="valor" step="0.01"
                 class="block w-full h-11 px-5 py-2.5 bg-white shadow-xs text-gray-900 border border-gray-300 rounded-full placeholder-gray-400 focus:outline-none"
                 placeholder="0.00"

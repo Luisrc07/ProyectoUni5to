@@ -123,44 +123,29 @@
                 PDF
             </a>
         </div>
-<<<<<<< HEAD
-
-        <x-table :headers="['Nombre', 'Descripción', 'Marca', 'Tipo de Equipo', 'Estado', 'Ubicación', 'Responsable','Valor', 'Acciones']">
-=======
         
         {{-- La tabla de equipos (siempre se renderiza la cabecera) --}}
         <x-table :headers="['Nombre', 'Descripción', 'Marca', 'Tipo de Equipo', 'Estado', 'Ubicación', 'Responsable','Cantidad','Valor Unitario', 'Acciones']">
->>>>>>> origin/LuisDev
             <tbody class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
                 @forelse ($equipos as $equipo)
                     @include('components.equipos.table-row', ['item' => $equipo, 'route_prefix' => 'equipos'])
                 @empty
                     {{-- Este <tr> ocupará el ancho del tbody (que es el ancho de la tabla) --}}
                     <tr class="text-gray-700 dark:text-gray-400">
-<<<<<<< HEAD
-                        <td colspan="9" class="px-4 py-3 text-center">No hay equipos para mostrar.</td>
-=======
                         <td colspan="10" class="px-4 py-8 text-center text-lg font-semibold">
                             No hay equipos para mostrar.
                         </td>
->>>>>>> origin/LuisDev
                     </tr>
                 @endforelse
             </tbody>
         </x-table>
 
-<<<<<<< HEAD
-        <div class="mt-4">
-            {{ $equipos->links() }}
-        </div>
-=======
         {{-- Paginación de Laravel (solo si hay equipos) --}}
         @if (!$equipos->isEmpty())
             <div class="mt-4">
                 {{ $equipos->links() }}
             </div>
         @endif
->>>>>>> origin/LuisDev
 
         <x-create-modal
             modal_title="Crear Equipo"
