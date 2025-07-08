@@ -8,9 +8,30 @@ use App\Models\Cliente;
 use App\Models\Proyecto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf; // Importar la clase PDF
 
 class ContratoController extends Controller
 {
+    // ... (métodos index, create, store, show, edit, update, destroy existentes)
+
+    /**
+     * Genera un PDF para el contrato especificado.
+     *
+     * @param  \App\Models\Contrato  $contrato
+     * @return \Illuminate\Http\Response
+     */
+    public function generarPdf(Contrato $contrato)
+    {
+        // Cargar las relaciones necesarias
+        $contrato->load(['cliente', 'proyecto']);
+
+        // Pasar los datos a la vista del PDF
+        $pdf = PDF::loadView('contratos.contrato_pdf', compact('contrato'));
+
+        // Retornar el PDF para ser visualizado en el navegador
+        return $pdf->stream('contrato-'.$contrato->serial.'.pdf');
+    }
+
     public function index(Request $request)
     {
         // Asegurarse de que el serial esté disponible si se requiere para el panel.

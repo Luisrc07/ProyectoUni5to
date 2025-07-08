@@ -34,6 +34,14 @@
                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
                 </svg>
             </a>
+            
+            {{-- Botón para Imprimir PDF --}}
+            <a href="{{ route($route_prefix . '.pdf', $item->id) }}" target="_blank" class="flex items-center justify-between px-2 py-2 text-sm font-medium leading-5 text-purple-600 rounded-lg dark:text-gray-400 focus:outline-none focus:shadow-outline-gray"
+                aria-label="Print">
+                <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M5 4h10v2H5V4zm0 4h10v2H5V8zm0 4h10v2H5v-2zM3 2h14a2 2 0 012 2v12a2 2 0 01-2 2H3a2 2 0 01-2-2V4a2 2 0 012-2zm2 14h10v-2H5v2z"/>
+                </svg>
+            </a>
 
             <form action="{{ route($route_prefix . '.destroy', $item->id) }}" method="POST" class="inline">
                 @csrf
