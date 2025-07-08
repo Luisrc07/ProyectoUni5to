@@ -10,12 +10,12 @@
             </x-button>
         </div>
 
-        <x-table :headers="['Cliente', 'Proyecto', 'Fecha', 'Costo', 'Estado', 'Serial', 'Opciones']"> {{-- Se agregó 'Serial' --}}
+        <x-table :headers="['Cliente', 'Proyecto', 'Fecha Contrato', 'Inicio Proyecto', 'Fin Proyecto', 'Costo Final', 'Estado', 'Serial', 'Opciones']">
             @forelse ($contratos as $contrato)
                 @include('components.contratos.table-row', ['item' => $contrato, 'route_prefix' => 'contratos'])
             @empty
                 <tr class="text-gray-700 dark:text-gray-400">
-                    <td class="px-4 py-3 text-center" colspan="7">No hay contratos para mostrar.</td> {{-- Se ajustó el colspan --}}
+                    <td class="px-4 py-3 text-center" colspan="9">No hay contratos para mostrar.</td>
                 </tr>
             @endforelse
         </x-table>
@@ -31,7 +31,8 @@
             @click.away="isModalOpen = false"
             @keydown.escape.window="isModalOpen = false"
         >
-            @include('components.contratos.create-form-fields')
+            {{-- Pasa $proyectosJson y $clientsJson al componente de campos del formulario --}}
+            @include('components.contratos.create-form-fields', ['proyectosJson' => $proyectosJson, 'clientsJson' => $clientsJson])
         </x-create-modal>
     </div>
 </x-layouts.app>

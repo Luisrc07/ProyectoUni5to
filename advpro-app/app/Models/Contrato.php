@@ -19,11 +19,15 @@ class Contrato extends Model
         'fecha_contrato',
         'costo',
         'estado',
+        'fecha_inicio_proyecto',
+        'fecha_fin_proyecto',    
         'serial' // Agregar el campo serial
     ];
 
     protected $casts = [
         'fecha_contrato' => 'date',
+        'fecha_inicio_proyecto' => 'date', 
+        'fecha_fin_proyecto' => 'date',    
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
@@ -45,6 +49,10 @@ class Contrato extends Model
         static::creating(function ($contrato) {
             $contrato->serial = self::generateUniqueSerial(); // Asignar el serial antes de crear
         });
+    }
+    public function proyectos()
+    {
+        return $this->hasMany(Proyecto::class, 'id_cliente');
     }
 
     public function cliente()

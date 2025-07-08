@@ -22,13 +22,14 @@
         }
         .signatures {
             margin-top: 50px;
-            display: table;
+            display: table; /* Para alinear horizontalmente con display:table-cell */
             width: 100%;
         }
         .signature-col {
-            display: table-cell;
+            display: table-cell; /* Para crear columnas */
             width: 50%;
             text-align: center;
+            vertical-align: top;
         }
     </style>
 </head>
@@ -42,11 +43,10 @@
                 Estado Lara, representada en este acto por su Director General, quien en lo sucesivo se denominará 
                 "El Prestador", y <strong>{{ $contrato->cliente->nombre }}</strong>, 
                 titular de la cédula de identidad N° {{ $contrato->cliente->documento ?? '[C.I.]' }},
-                 con domicilio en {{ $contrato->cliente->direccion ?? '[Dirección]' }},
-                  quien en lo sucesivo se denominará "El Cliente",
-
+                con domicilio en {{ $contrato->cliente->direccion ?? '[Dirección]' }},
+                quien en lo sucesivo se denominará "El Cliente",
             </p>
-           
+            
             <p>
                 se acuerda lo siguiente:
             </p>
@@ -67,15 +67,22 @@
         <div class="section">
             <h3>2. Plazo de Ejecución</h3>
             <p>
-                El proyecto se ejecutará entre el <strong>{{ $contrato->fecha_contrato->format('d/m/Y') }}</strong> y el <strong>[fecha de entrega]</strong>, salvo causas de fuerza mayor debidamente justificadas.
+                El proyecto se ejecutará entre el 
+                <strong>{{ $contrato->fecha_inicio_proyecto?->format('d/m/Y') ?? 'Fecha de Inicio No Especificada' }}</strong> 
+                y el 
+                <strong>{{ $contrato->fecha_fin_proyecto?->format('d/m/Y') ?? 'Fecha de Fin No Especificada' }}</strong>, 
+                salvo causas de fuerza mayor debidamente justificadas.
             </p>
         </div>
 
         <div class="section">
             <h3>3. Honorarios y Forma de Pago</h3>
             <p>
-    El Cliente pagará al Prestador la suma de <strong>{{ number_format($contrato->costo, 2, ',', '.') }} ({{ \App\Helpers\NumberToWords::convert($contrato->costo) }} BOLÍVARES)</strong>, distribuidos de la siguiente manera:
-</p>
+                El Cliente pagará al Prestador la suma de 
+                {{-- Ahora el campo 'costo' del contrato ya es el costo final --}}
+                <strong>{{ number_format($contrato->costo, 2, ',', '.') }} ({{ \App\Helpers\NumberToWords::convert($contrato->costo) }} BOLÍVARES)</strong>, 
+                distribuidos de la siguiente manera:
+            </p>
             <ul>
                 <li>50% al inicio del proyecto</li>
                 <li>50% contra entrega del producto final</li>
@@ -113,9 +120,6 @@
                 <p>__________________________</p>
                 <p><strong>Nombre:</strong> {{ $contrato->cliente->nombre }}</p>
                 <p><strong>C.I.:</strong> {{ $contrato->cliente->documento ?? '________________' }}</p>
-
-
-
                 <p>Serial Unico De Contrato : {{ $contrato->serial }} </p>
             </div>
         </div>

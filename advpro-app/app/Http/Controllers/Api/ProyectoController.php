@@ -322,7 +322,7 @@ class ProyectoController extends Controller
                     'button' => 'Aceptar'
                 ]);
         } catch (\Exception $e) {
-            \Log::error("Error al eliminar proyecto: " . $e->getMessage() . " en " . $e->getFile() . " línea " . $e->getLine());
+            Log::error("Error al eliminar proyecto: " . $e->getMessage() . " en " . $e->getFile() . " línea " . $e->getLine());
 
             return $request->wantsJson()
                 ? response()->json(['message' => 'Error al eliminar el proyecto.', 'error' => $e->getMessage()], 500)
