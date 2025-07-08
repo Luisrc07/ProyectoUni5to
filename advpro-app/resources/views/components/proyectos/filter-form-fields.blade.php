@@ -34,24 +34,23 @@
             </select>
         </div>
 
-        {{-- Filtro por Fecha de Inicio (único campo) --}}
+        {{-- Nuevo: Filtro por Duración de Producción Audiovisual --}}
         <div>
-            <label class="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-300" for="fecha_inicio">
-                Fecha Inicio
+            <label class="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-300" for="duracion_video">
+                Duración del Video
             </label>
-            <input type="date" name="fecha_inicio" id="fecha_inicio"
-                class="block w-full h-11 px-5 py-2.5 border border-gray-300 rounded-full placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 form-input"
-                value="{{ request('fecha_inicio') }}" />
-        </div>
-
-        {{-- Filtro por Fecha de Fin (único campo) --}}
-        <div>
-            <label class="block text-gray-700 text-sm font-bold mb-2 dark:text-gray-300" for="fecha_fin">
-                Fecha Fin
-            </label>
-            <input type="date" name="fecha_fin" id="fecha_fin"
-                class="block w-full h-11 px-5 py-2.5 border border-gray-300 rounded-full placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 form-input"
-                value="{{ request('fecha_fin') }}" />
+            <select name="duracion_video" id="duracion_video"
+                class="block w-full h-11 px-5 py-2.5 border border-gray-300 rounded-full focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 form-select">
+                <option value="">Cualquier Duración</option>
+                <option value="30s" {{ (request('duracion_video') == '30s') ? 'selected' : '' }}>30 segundos</option>
+                <option value="1m" {{ (request('duracion_video') == '1m') ? 'selected' : '' }}>1 minuto</option>
+                <option value="2m" {{ (request('duracion_video') == '2m') ? 'selected' : '' }}>2 minutos</option>
+                <option value="5m" {{ (request('duracion_video') == '5m') ? 'selected' : '' }}>5 minutos</option>
+                <option value="10m" {{ (request('duracion_video') == '10m') ? 'selected' : '' }}>10 minutos</option>
+                <option value="15m" {{ (request('duracion_video') == '15m') ? 'selected' : '' }}>15 minutos</option>
+                <option value="30m" {{ (request('duracion_video') == '30m') ? 'selected' : '' }}>30 minutos</option>
+                <option value="30m+" {{ (request('duracion_video') == '30m+') ? 'selected' : '' }}>Más de 30 minutos</option>
+            </select>
         </div>
 
         {{-- Filtro por Presupuesto Mínimo --}}
@@ -107,4 +106,3 @@
         </div>
     </div>
 </div>
-

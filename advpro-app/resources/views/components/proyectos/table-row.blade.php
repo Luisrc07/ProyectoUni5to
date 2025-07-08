@@ -17,25 +17,20 @@
     <td class="px-4 py-3 text-sm">
         <span class="px-2 py-1 font-semibold leading-tight rounded-full
             @if ($item->estado == 'Realizado')
-                text-green-700 bg-green-100 dark:bg-green-700 dark:text-green-100
+                text-green-700 bg-green-100 dark:bg-green-800 dark:text-green-300
             @elseif ($item->estado == 'En proceso')
-                text-orange-700 bg-orange-100 dark:bg-orange-700 dark:text-orange-100
+                text-orange-700 bg-orange-100 dark:bg-orange-800 dark:text-orange-300
             @elseif ($item->estado == 'En espera')
-                text-blue-700 bg-blue-100 dark:bg-blue-700 dark:text-blue-100
+                text-blue-700 bg-blue-100 dark:bg-blue-800 dark:text-blue-300
             @endif
         ">
             {{ $item->estado }}
         </span>
     </td>
 
-    {{-- Fecha de inicio --}}
+    {{-- Duración estimada del video (ahora en la posición correcta) --}}
     <td class="px-4 py-3 text-sm">
-        {{ $item->fecha_inicio ? \Carbon\Carbon::parse($item->fecha_inicio)->format('d/m/Y') : 'N/A' }}
-    </td>
-
-    {{-- Fecha de fin --}}
-    <td class="px-4 py-3 text-sm">
-        {{ $item->fecha_fin ? \Carbon\Carbon::parse($item->fecha_fin)->format('d/m/Y') : 'N/A' }}
+        {{ $item->duracion_estimada_minutos ?? 'N/A' }} {{ $item->duracion_estimada_minutos ? 'min' : '' }}
     </td>
 
     {{-- Presupuesto --}}
@@ -53,19 +48,33 @@
         {{ $item->responsable->nombre ?? '—' }} — {{ $item->responsable->documento ?? '' }}
     </td>
 
-    {{-- Resumen de Personal Asignado --}}
+    {{-- Personal Asignado (listado de nombres) --}}
     <td class="px-4 py-3 text-sm">
-        @if ($item->personalAsignado->count() > 0)
-            <span class="block">{{ $item->personalAsignado->count() }} Personal</span>
+        @php
+            $assignedPersonal = $item->personalAsignado->map(fn($p) => $p->nombre);
+            $personalCount = $assignedPersonal->count();
+        @endphp
+        @if ($personalCount > 0)
+            {{ $assignedPersonal->take(2)->implode(', ') }}
+            @if ($personalCount > 2)
+                y {{ $personalCount - 2 }} más
+            @endif
         @else
             <span>0 Personal</span>
         @endif
     </td>
 
-    {{-- Resumen de Equipos Asignados --}}
+    {{-- Equipos Asignados (listado de nombres) --}}
     <td class="px-4 py-3 text-sm">
-        @if ($item->equiposAsignados->count() > 0)
-            <span class="block">{{ $item->equiposAsignados->count() }} Equipos</span>
+        @php
+            $assignedEquipos = $item->equiposAsignados->map(fn($e) => $e->nombre);
+            $equiposCount = $assignedEquipos->count();
+        @endphp
+        @if ($equiposCount > 0)
+            {{ $assignedEquipos->take(2)->implode(', ') }}
+            @if ($equiposCount > 2)
+                y {{ $equiposCount - 2 }} más
+            @endif
         @else
             <span>0 Equipos</span>
         @endif
@@ -87,7 +96,7 @@
                     class="flex items-center justify-between px-2 py-2 text-sm font-medium leading-5 text-purple-600 rounded-lg dark:text-gray-400 focus:outline-none focus:shadow-outline-gray"
                     aria-label="Delete"
                     onclick="return confirm('¿Estás seguro de que quieres eliminar este proyecto?');">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z"></path></svg>
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 1 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z"></path></svg>
                 </button>
             </form>
         </div>

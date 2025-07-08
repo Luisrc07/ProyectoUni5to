@@ -11,21 +11,40 @@
 
                 <form action="{{ route('proyectos.store') }}" method="POST" id="create-project-form-page">
                     @csrf
+
+                    {{-- Sección de Errores de Validación --}}
+                    @if ($errors->any())
+                        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                            <strong class="font-bold">¡Oops! Hubo algunos problemas con tu entrada:</strong>
+                            <ul class="mt-2 list-disc list-inside">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     <div>
                         {{-- Campos básicos del proyecto --}}
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4"> {{-- Gap reducido a 4, margen inferior a 4 --}}
                             <label class="block relative">
                                 <span class="flex items-center mb-1 text-gray-600 text-xs font-medium dark:text-gray-400">Nombre del Proyecto</span> {{-- Tamaño de texto reducido --}}
                                 <input type="text" name="nombre"
-                                    class="block w-full h-9 px-4 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-input text-sm" {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
+                                    class="block w-full h-9 px-4 py-2 border {{ $errors->has('nombre') ? 'border-red-500' : 'border-gray-300' }} rounded-md placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-input text-sm" {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
                                     placeholder="Nombre del Proyecto" value="{{ old('nombre', $proyecto->nombre ?? '') }}" required
                                 />
+                                @error('nombre')
+                                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                                @enderror
                             </label>
                             <label class="block relative">
                                 <span class="flex items-center mb-1 text-gray-600 text-xs font-medium dark:text-gray-400">Descripción</span> {{-- Tamaño de texto reducido --}}
                                 <textarea name="descripcion"
-                                    class="block w-full h-20 px-4 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-textarea text-sm" {{-- Altura h-20, px-4, py-2, rounded-md, text-sm --}}
+                                    class="block w-full h-20 px-4 py-2 border {{ $errors->has('descripcion') ? 'border-red-500' : 'border-gray-300' }} rounded-md placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-textarea text-sm" {{-- Altura h-20, px-4, py-2, rounded-md, text-sm --}}
                                     placeholder="Descripción del proyecto" required>{{ old('descripcion', $proyecto->descripcion ?? '') }}</textarea>
+                                @error('descripcion')
+                                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                                @enderror
                             </label>
                         </div>
 
@@ -34,10 +53,13 @@
                             <label class="block relative">
                                 <span class="flex items-center mb-1 text-gray-600 text-xs font-medium dark:text-gray-400">Duración Estimada (minutos)</span> {{-- Tamaño de texto reducido --}}
                                 <input type="number" name="duracion_estimada_minutos" id="duracion_estimada_minutos" oninput="calculatePresupuesto()"
-                                    class="block w-full h-9 px-4 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-input text-sm" {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
+                                    class="block w-full h-9 px-4 py-2 border {{ $errors->has('duracion_estimada_minutos') ? 'border-red-500' : 'border-gray-300' }} rounded-md placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-input text-sm" {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
                                     value="{{ old('duracion_estimada_minutos', $proyecto->duracion_estimada_minutos ?? '') }}" required min="1"
                                 />
                                 <p id="duracionError" class="text-red-500 text-xs mt-0.5"></p> {{-- Margen superior reducido --}}
+                                @error('duracion_estimada_minutos')
+                                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                                @enderror
                             </label>
 
                             {{-- Presupuesto (Automático) --}}
@@ -47,44 +69,39 @@
                                     class="block w-full h-9 px-4 py-2 border border-gray-300 rounded-md bg-gray-100 placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 form-input cursor-not-allowed text-sm" {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
                                     step="0.01" value="{{ old('presupuesto', $proyecto->presupuesto ?? 0) }}" required
                                 />
+                                @error('presupuesto')
+                                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                                @enderror
                             </label>
                         </div>
 
-                        {{-- Nuevos campos para Fecha de Inicio Estimada y Fecha de Fin Estimada --}}
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                            <label class="block relative">
-                                <span class="flex items-center mb-1 text-gray-600 text-xs font-medium dark:text-gray-400">Fecha de Inicio Estimada</span>
-                                <input type="date" name="fecha_inicio_estimada"
-                                    class="block w-full h-9 px-4 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-input text-sm"
-                                    value="{{ old('fecha_inicio_estimada', $proyecto->fecha_inicio_estimada ?? '') }}" />
-                            </label>
-                            <label class="block relative">
-                                <span class="flex items-center mb-1 text-gray-600 text-xs font-medium dark:text-gray-400">Fecha de Fin Estimada</span>
-                                <input type="date" name="fecha_fin_estimada"
-                                    class="block w-full h-9 px-4 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-input text-sm"
-                                    value="{{ old('fecha_fin_estimada', $proyecto->fecha_fin_estimada ?? '') }}" />
-                            </label>
-                        </div>
+                        
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4"> {{-- Gap y margen inferior reducidos --}}
                             {{-- Estado --}}
                             <label class="block relative">
                                 <span class="flex items-center mb-1 text-gray-600 text-xs font-medium dark:text-gray-400">Estado</span> {{-- Tamaño de texto reducido --}}
-                                <select name="estado" class="block w-full h-9 px-4 py-2 border border-gray-300 rounded-md focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-select text-sm" required> {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
+                                <select name="estado" class="block w-full h-9 px-4 py-2 border {{ $errors->has('estado') ? 'border-red-500' : 'border-gray-300' }} rounded-md focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-select text-sm" required> {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
                                     <option value="" disabled {{ old('estado', $proyecto->estado ?? '') ? '' : 'selected' }}>Seleccione un estado</option>
                                     <option value="En espera" {{ old('estado', $proyecto->estado ?? '') == 'En espera' ? 'selected' : '' }}>En espera</option>
                                     <option value="En proceso" {{ old('estado', $proyecto->estado ?? '') == 'En proceso' ? 'selected' : '' }}>En proceso</option>
                                     <option value="Realizado" {{ old('estado', $proyecto->estado ?? '') == 'Realizado' ? 'selected' : '' }}>Realizado</option>
                                 </select>
+                                @error('estado')
+                                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                                @enderror
                             </label>
 
                             {{-- Lugar --}}
                             <label class="block relative">
                                 <span class="flex items-center mb-1 text-gray-600 text-xs font-medium dark:text-gray-400">Lugar (Opcional)</span> {{-- Tamaño de texto reducido --}}
                                 <input type="text" name="lugar"
-                                    class="block w-full h-9 px-4 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-input text-sm" {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
+                                    class="block w-full h-9 px-4 py-2 border {{ $errors->has('lugar') ? 'border-red-500' : 'border-gray-300' }} rounded-md placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-input text-sm" {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
                                     placeholder="Lugar del proyecto" value="{{ old('lugar', $proyecto->lugar ?? '') }}"
                                 />
+                                @error('lugar')
+                                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                                @enderror
                             </label>
                         </div>
 
@@ -93,7 +110,7 @@
                             <label class="block relative">
                                 <span class="flex items-center mb-1 text-gray-600 text-xs font-medium dark:text-gray-400">Responsable</span> {{-- Tamaño de texto reducido --}}
                                 <select name="responsable_id"
-                                    class="block w-full h-9 px-4 py-2 border border-gray-300 rounded-md focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-select text-sm"> {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
+                                    class="block w-full h-9 px-4 py-2 border {{ $errors->has('responsable_id') ? 'border-red-500' : 'border-gray-300' }} rounded-md focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-select text-sm"> {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
                                     <option value="" disabled {{ old('responsable_id', $proyecto->responsable_id ?? '') ? '' : 'selected' }}>Seleccione un responsable</option>
                                     @foreach ($personal as $person)
                                         <option value="{{ $person->id }}" {{ old('responsable_id', $proyecto->responsable_id ?? '') == $person->id ? 'selected' : '' }}>
@@ -101,6 +118,9 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                @error('responsable_id')
+                                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                                @enderror
                             </label>
                         </div>
 
@@ -109,6 +129,12 @@
                             <h3 class="text-base font-semibold mb-2 text-gray-700 dark:text-gray-300">Personal Asignado</h3> {{-- Tamaño de texto reducido --}}
                             <div id="personal-container">
                                 {{-- Los campos de personal se añadirán aquí dinámicamente con JavaScript --}}
+                                @error('recursos_personal')
+                                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                                @enderror
+                                @error('recursos_personal.*.staff_id')
+                                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                                @enderror
                             </div>
                             <button type="button" onclick="addPersonal()"
                                 class="mt-3 px-3 py-1.5 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"> {{-- Padding y tamaño de texto reducidos --}}
@@ -121,6 +147,15 @@
                             <h3 class="text-base font-semibold mb-2 text-gray-700 dark:text-gray-300">Equipos Asignados</h3> {{-- Tamaño de texto reducido --}}
                             <div id="equipos-container">
                                 {{-- Los campos de equipo se añadirán aquí dinámicamente con JavaScript --}}
+                                @error('recursos_equipos')
+                                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                                @enderror
+                                @error('recursos_equipos.*.equipo_id')
+                                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                                @enderror
+                                @error('recursos_equipos.*.cantidad')
+                                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                                @enderror
                             </div>
                             <button type="button" onclick="addEquipo()"
                                 class="mt-3 px-3 py-1.5 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"> {{-- Padding y tamaño de texto reducidos --}}
@@ -146,20 +181,45 @@
     <script>
         const allPersonal = @json($personal);
         const allEquipos = @json($equipos);
-        let personalIndex = 0;
-        let equipoIndex = 0;
+        let personalIndex = 0; // Se inicializará correctamente al cargar los datos existentes
+        let equipoIndex = 0; // Se inicializará correctamente al cargar los datos existentes
 
         document.addEventListener('DOMContentLoaded', function() {
-            const initialPersonal = @json($proyecto->personalAsignado ?? []);
-            const initialEquipos = @json($proyecto->equiposAsignados ?? []);
+            // Manejo de old() para campos principales (ya se hace en el HTML)
+            // Para los recursos dinámicos, necesitamos cargar tanto los que vienen de $proyecto
+            // como los que vienen de old() en caso de un error de validación.
 
+            const initialPersonal = @json($proyecto->personalAsignado ?? []);
+            const oldPersonal = @json(old('recursos_personal', []));
+            const initialEquipos = @json($proyecto->equiposAsignados ?? []);
+            const oldEquipos = @json(old('recursos_equipos', []));
+
+            // Cargar personal existente (desde $proyecto)
             initialPersonal.forEach(p => {
                 addPersonal(p.pivot.id, p.id);
             });
+            // Cargar personal de old() que no esté ya cargado (para errores de validación en nuevas adiciones)
+            oldPersonal.forEach(p => {
+                // Solo añadir si no tiene un ID de pivot (es decir, es una adición nueva no persistida)
+                // y el staff_id no está vacío
+                if (!p.id && p.staff_id) {
+                    addPersonal(null, p.staff_id);
+                }
+            });
+            personalIndex = Math.max(initialPersonal.length, oldPersonal.length); // Ajusta el índice
 
+            // Cargar equipos existentes (desde $proyecto)
             initialEquipos.forEach(e => {
                 addEquipo(e.pivot.id, e.id, e.pivot.cantidad);
             });
+            // Cargar equipos de old() que no estén ya cargados
+            oldEquipos.forEach(e => {
+                if (!e.id && e.equipo_id && e.cantidad) {
+                    addEquipo(null, e.equipo_id, e.cantidad);
+                }
+            });
+            equipoIndex = Math.max(initialEquipos.length, oldEquipos.length); // Ajusta el índice
+
 
             calculatePresupuesto(); // Calcular presupuesto inicial
             updateAllSelectOptions(); // Actualizar opciones de select al cargar
@@ -235,7 +295,7 @@
                     <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Personal:</label> {{-- Tamaño de texto reducido --}}
                     <select name="recursos_personal[${personalIndex}][staff_id]" onchange="calculatePresupuesto(); updateAllSelectOptions();"
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" required> {{-- Tamaño de texto reducido --}}
-                        <option value="" disabled selected>Seleccione personal</option>
+                        <option value="" disabled ${staff_id ? '' : 'selected'}>Seleccione personal</option>
                         ${allPersonal.map(p => `<option value="${p.id}" ${p.id == staff_id ? 'selected' : ''}>${p.nombre} — ${p.documento}</option>`).join('')}
                     </select>
                 </div>
@@ -268,7 +328,7 @@
                     <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Equipo:</label> {{-- Tamaño de texto reducido --}}
                     <select name="recursos_equipos[${equipoIndex}][equipo_id]" onchange="calculatePresupuesto(); updateAllSelectOptions();"
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" required> {{-- Tamaño de texto reducido --}}
-                        <option value="" disabled selected>Seleccione equipo</option>
+                        <option value="" disabled ${equipo_id ? '' : 'selected'}>Seleccione equipo</option>
                         ${allEquipos.map(e => `<option value="${e.id}" ${e.id == equipo_id ? 'selected' : ''}>${e.nombre} (${e.marca})</option>`).join('')}
                     </select>
                 </div>
@@ -327,7 +387,6 @@
             if (projectDurationDays > 0) {
                 totalPresupuesto += projectDurationDays * DAILY_PROJECT_OVERHEAD;
             }
-
 
             // 3. Add Cost for Assigned Personal
             const assignedPersonalElements = document.querySelectorAll('#personal-container select[name$="[staff_id]"]');

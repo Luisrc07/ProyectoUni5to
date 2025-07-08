@@ -8,8 +8,11 @@ use App\Models\Staff; // Importa el modelo Staff
 use App\Models\Equipo; // Importa el modelo Equipo
 use App\Models\ProyectoRecurso; // Importa el modelo ProyectoRecurso
 use Illuminate\Http\Request;
-use Carbon\Carbon; // Asegúrate de importar Carbon
+// use Carbon\Carbon; // Ya no es necesario si no se trabajan con fechas --> ¡Mantener comentado o eliminar!
 use Barryvdh\DomPDF\Facade\Pdf; // Importa la fachada de DomPDF
+use Illuminate\Support\Facades\DB; // Para transacciones
+use App\Http\Requests\StoreProyectoRequest; // Importa el Form Request
+use App\Http\Requests\UpdateProyectoRequest; // Importa el Form Request
 
 class ProyectoController extends Controller
 {
@@ -40,7 +43,7 @@ class ProyectoController extends Controller
             $query->where('presupuesto', '<=', $request->input('presupuesto_max'));
         }
 
-        // Filtro por Duración Estimada en Minutos (Nuevo)
+        // Filtro por Duración Estimada en Minutos
         if ($request->filled('duracion_min')) {
             $query->where('duracion_estimada_minutos', '>=', $request->input('duracion_min'));
         }
@@ -51,6 +54,7 @@ class ProyectoController extends Controller
         // Filtro por personal asignado (si necesitas filtrar proyectos que tienen cierto personal)
         if ($request->filled('personal_asignado_id')) {
             $query->whereHas('personalAsignado', function ($q) use ($request) {
+                // Asegúrate de que 'staff.id' es la columna correcta en tu tabla de staff
                 $q->where('staff.id', $request->input('personal_asignado_id'));
             });
         }
@@ -58,6 +62,7 @@ class ProyectoController extends Controller
         // Filtro por equipo asignado (si necesitas filtrar proyectos que tienen cierto equipo)
         if ($request->filled('equipo_asignado_id')) {
             $query->whereHas('equiposAsignados', function ($q) use ($request) {
+                // Asegúrate de que 'equipos.id' es la columna correcta en tu tabla de equipos
                 $q->where('equipos.id', $request->input('equipo_asignado_id'));
             });
         }
@@ -81,6 +86,7 @@ class ProyectoController extends Controller
         // Aplicar filtros
         $query = $this->applyFilters($query, $request);
 
+        // Paginación
         $proyectos = $query->paginate(7)->withQueryString();
 
         // Guardar los valores de los filtros actuales para que el formulario los recuerde
@@ -88,7 +94,11 @@ class ProyectoController extends Controller
 
         // Devolver la respuesta en JSON si es una petición API, o la vista si es web
         return $request->wantsJson()
-            ? response()->json(['proyectos' => $proyectos, 'personal' => $personal, 'equipos' => $equipos], 200)
+            ? response()->json([
+                'proyectos' => $proyectos,
+                'personal' => $personal,
+                'equipos' => $equipos
+            ], 200)
             : view('proyectos.panel', compact('proyectos', 'personal', 'equipos', 'filter_values'));
     }
 
@@ -106,80 +116,81 @@ class ProyectoController extends Controller
 
     /**
      * Almacena un nuevo proyecto y sus recursos asociados en la base de datos.
-     * La lógica de fechas para los recursos se calcula aquí.
+     *
+     * @param  \App\Http\Requests\StoreProyectoRequest  $request
+     * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(StoreProyectoRequest $request)
     {
-        $validatedData = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'descripcion' => 'nullable|string',
-            'duracion_estimada_minutos' => 'required|integer|min:1',
-            'presupuesto' => 'nullable|numeric|min:0',
-            'estado' => 'required|string|in:En espera,En proceso,Realizado',
-            'lugar' => 'nullable|string|max:255',
-            'responsable_id' => 'nullable|exists:staff,id',
-            'fecha_inicio_estimada' => 'nullable|date', // Validación para fecha de inicio estimada del proyecto
-            'fecha_fin_estimada' => 'nullable|date|after_or_equal:fecha_inicio_estimada', // Validación para fecha de fin estimada del proyecto
+        // Los datos ya están validados por StoreProyectoRequest
+        $validatedData = $request->validated();
 
-            // Validaciones para recursos de personal
-            'recursos_personal' => 'nullable|array',
-            'recursos_personal.*.staff_id' => 'required_with:recursos_personal|exists:staff,id',
+        DB::beginTransaction(); // Iniciar transacción
 
-            // Validaciones para recursos de equipos
-            'recursos_equipos' => 'nullable|array',
-            'recursos_equipos.*.equipo_id' => 'required_with:recursos_equipos|exists:equipos,id',
-            'recursos_equipos.*.cantidad' => 'nullable|integer|min:1',
-        ]);
+        try {
+            // Crear el proyecto
+            $proyecto = Proyecto::create($validatedData);
 
-        // Crear el proyecto
-        $proyecto = Proyecto::create($validatedData);
-
-        // Obtener las fechas estimadas del proyecto
-        $fechaInicioProyecto = $validatedData['fecha_inicio_estimada'] ?? null;
-        $fechaFinProyecto = $validatedData['fecha_fin_estimada'] ?? null;
-
-        // Guardar personal asignado usando la relación polimórfica
-        if (isset($validatedData['recursos_personal'])) {
-            foreach ($validatedData['recursos_personal'] as $recursoPersonal) {
-                ProyectoRecurso::create([
-                    'proyecto_id' => $proyecto->id,
-                    'asignable_id' => $recursoPersonal['staff_id'],
-                    'asignable_type' => Staff::class,
-                    'cantidad' => null, // 'cantidad' es null para personal
-                    // Las fechas de asignación de personal se toman de las fechas estimadas del proyecto
-                    'fecha_asignacion' => $fechaInicioProyecto,
-                    'fecha_fin_asignacion' => $fechaFinProyecto,
-                ]);
+            // Guardar personal asignado
+            if (!empty($validatedData['recursos_personal'])) {
+                foreach ($validatedData['recursos_personal'] as $recursoPersonal) {
+                    ProyectoRecurso::create([
+                        'proyecto_id' => $proyecto->id,
+                        'asignable_id' => $recursoPersonal['staff_id'],
+                        'asignable_type' => Staff::class,
+                        'cantidad' => null, // 'cantidad' es null para personal
+                    ]);
+                }
             }
-        }
 
-        // Guardar equipos asignados usando la relación polimórfica
-        if (isset($validatedData['recursos_equipos'])) {
-            foreach ($validatedData['recursos_equipos'] as $recursoEquipo) {
-                ProyectoRecurso::create([
-                    'proyecto_id' => $proyecto->id,
-                    'asignable_id' => $recursoEquipo['equipo_id'],
-                    'asignable_type' => Equipo::class,
-                    'cantidad' => $recursoEquipo['cantidad'] ?? null,
-                    // Las fechas de asignación de equipo se toman de las fechas estimadas del proyecto
-                    'fecha_asignacion' => $fechaInicioProyecto,
-                    'fecha_fin_asignacion' => $fechaFinProyecto,
-                ]);
+            // Guardar equipos asignados
+            if (!empty($validatedData['recursos_equipos'])) {
+                foreach ($validatedData['recursos_equipos'] as $recursoEquipo) {
+                    ProyectoRecurso::create([
+                        'proyecto_id' => $proyecto->id,
+                        'asignable_id' => $recursoEquipo['equipo_id'],
+                        'asignable_type' => Equipo::class,
+                        'cantidad' => $recursoEquipo['cantidad'], // La validación asegura que exista y sea válida
+                    ]);
+                }
             }
-        }
 
-        return $request->wantsJson()
-            ? response()->json(['message' => 'Proyecto y recursos creados', 'data' => $proyecto->load(['personalAsignado', 'equiposAsignados'])], 201)
-            : redirect()->route('proyectos.index')->with('alert', [
-                'type' => 'success',
-                'title' => '¡Éxito!',
-                'message' => 'Proyecto y recursos creados correctamente.',
-                'button' => 'Aceptar'
-            ]);
+            DB::commit(); // Confirmar transacción
+
+            return $request->wantsJson()
+                ? response()->json([
+                    'message' => 'Proyecto y recursos creados correctamente.',
+                    'data' => $proyecto->load(['personalAsignado', 'equiposAsignados'])
+                ], 201)
+                : redirect()->route('proyectos.index')->with('alert', [
+                    'type' => 'success',
+                    'title' => '¡Éxito!',
+                    'message' => 'Proyecto y recursos creados correctamente.',
+                    'button' => 'Aceptar'
+                ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack(); // Revertir transacción en caso de error
+            // Logear el error para depuración
+            \Log::error("Error al crear proyecto y recursos: " . $e->getMessage() . " en " . $e->getFile() . " línea " . $e->getLine());
+
+            return $request->wantsJson()
+                ? response()->json(['message' => 'Error al crear el proyecto y sus recursos.', 'error' => $e->getMessage()], 500)
+                : back()->withInput()->with('alert', [
+                    'type' => 'error',
+                    'title' => '¡Error!',
+                    'message' => 'Hubo un problema al crear el proyecto y sus recursos. ' . $e->getMessage(),
+                    'button' => 'Aceptar'
+                ]);
+        }
     }
 
     /**
      * Muestra los detalles de un proyecto específico, incluyendo sus recursos.
+     *
+     * @param  \App\Models\Proyecto  $proyecto
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
      */
     public function show(Proyecto $proyecto, Request $request)
     {
@@ -193,11 +204,15 @@ class ProyectoController extends Controller
 
     /**
      * Muestra el formulario para editar un proyecto existente.
+     *
+     * @param  \App\Models\Proyecto  $proyecto
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
      */
     public function edit(Proyecto $proyecto, Request $request)
     {
         $personal = Staff::all();
-        $equipos = Equipo::all(); // Cargar todos los equipos
+        $equipos = Equipo::all();
 
         // Cargar las relaciones de recursos para prellenar el formulario
         $proyecto->load(['personalAsignado', 'equiposAsignados']);
@@ -209,111 +224,122 @@ class ProyectoController extends Controller
 
     /**
      * Actualiza un proyecto existente y sus recursos asociados en la base de datos.
-     * La lógica de fechas para los recursos se calcula aquí.
+     *
+     * @param  \App\Http\Requests\UpdateProyectoRequest  $request
+     * @param  \App\Models\Proyecto  $proyecto
+     * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Proyecto $proyecto)
+    public function update(UpdateProyectoRequest $request, Proyecto $proyecto)
     {
-        $validatedData = $request->validate([
-            'nombre' => 'sometimes|string|max:255',
-            'descripcion' => 'nullable|string',
-            'duracion_estimada_minutos' => 'sometimes|integer|min:1',
-            'presupuesto' => 'nullable|numeric|min:0',
-            'estado' => 'sometimes|string|in:En espera,En proceso,Realizado',
-            'lugar' => 'nullable|string|max:255',
-            'responsable_id' => 'nullable|exists:staff,id',
-            'fecha_inicio_estimada' => 'nullable|date', // Validación para fecha de inicio estimada del proyecto
-            'fecha_fin_estimada' => 'nullable|date|after_or_equal:fecha_inicio_estimada', // Validación para fecha de fin estimada del proyecto
+        // Los datos ya están validados por UpdateProyectoRequest
+        $validatedData = $request->validated();
 
-            // Validaciones para recursos de personal
-            'recursos_personal' => 'nullable|array',
-            'recursos_personal.*.id' => 'nullable|exists:proyecto_recursos,id', // Para actualizar existentes
-            'recursos_personal.*.staff_id' => 'required_with:recursos_personal|exists:staff,id',
+        DB::beginTransaction(); // Iniciar transacción
 
-            // Validaciones para recursos de equipos
-            'recursos_equipos' => 'nullable|array',
-            'recursos_equipos.*.id' => 'nullable|exists:proyecto_recursos,id', // Para actualizar existentes
-            'recursos_equipos.*.equipo_id' => 'required_with:recursos_equipos|exists:equipos,id',
-            'recursos_equipos.*.cantidad' => 'nullable|integer|min:1',
-        ]);
+        try {
+            // Actualizar los datos del proyecto
+            $proyecto->update($validatedData);
 
-        $proyecto->update($validatedData);
+            // --- Estrategia de Actualización de Recursos: Eliminar y Recrear (más simple para polimórficos) ---
+            // Eliminar todas las asignaciones de recursos existentes para este proyecto
+            // Esta relación asume que tienes un `hasMany` en tu modelo Proyecto a ProyectoRecurso
+            // Si el nombre de tu relación es diferente, ajústalo.
+            // Por ejemplo, si se llama 'recursosAsignados', sería $proyecto->recursosAsignados()->delete();
+            $proyecto->recursosProyectoRecurso()->delete(); // Confirma el nombre de esta relación en tu modelo Proyecto.
 
-        // Obtener las fechas estimadas del proyecto (ya actualizadas por el $proyecto->update($validatedData))
-        $fechaInicioProyecto = $proyecto->fecha_inicio_estimada;
-        $fechaFinProyecto = $proyecto->fecha_fin_estimada;
-
-        // Sincronizar o actualizar recursos
-        // Primero, identifica los IDs de los recursos que deben permanecer
-        $newPersonalResourceIds = collect($validatedData['recursos_personal'] ?? [])->pluck('id')->filter()->toArray();
-        $newEquipoResourceIds = collect($validatedData['recursos_equipos'] ?? [])->pluck('id')->filter()->toArray();
-        $allNewResourceIds = array_merge($newPersonalResourceIds, $newEquipoResourceIds);
-
-        // Elimina los recursos existentes que no están en la solicitud
-        $proyecto->recursos()->whereNotIn('id', $allNewResourceIds)->delete();
-
-        // Actualizar o crear personal asignado
-        if (isset($validatedData['recursos_personal'])) {
-            foreach ($validatedData['recursos_personal'] as $recursoPersonal) {
-                ProyectoRecurso::updateOrCreate(
-                    ['id' => $recursoPersonal['id'] ?? null, 'proyecto_id' => $proyecto->id],
-                    [
+            // Recrear asignaciones de personal
+            if (!empty($validatedData['recursos_personal'])) {
+                foreach ($validatedData['recursos_personal'] as $recursoPersonal) {
+                    ProyectoRecurso::create([
+                        'proyecto_id' => $proyecto->id,
                         'asignable_id' => $recursoPersonal['staff_id'],
                         'asignable_type' => Staff::class,
-                        'cantidad' => null, // 'cantidad' es null para personal
-                        // Las fechas de asignación de personal se toman de las fechas estimadas del proyecto
-                        'fecha_asignacion' => $fechaInicioProyecto,
-                        'fecha_fin_asignacion' => $fechaFinProyecto,
-                    ]
-                );
+                        'cantidad' => null,
+                    ]);
+                }
             }
-        }
 
-        // Actualizar o crear equipos asignados
-        if (isset($validatedData['recursos_equipos'])) {
-            foreach ($validatedData['recursos_equipos'] as $recursoEquipo) {
-                ProyectoRecurso::updateOrCreate(
-                    ['id' => $recursoEquipo['id'] ?? null, 'proyecto_id' => $proyecto->id],
-                    [
+            // Recrear asignaciones de equipos
+            if (!empty($validatedData['recursos_equipos'])) {
+                foreach ($validatedData['recursos_equipos'] as $recursoEquipo) {
+                    ProyectoRecurso::create([
+                        'proyecto_id' => $proyecto->id,
                         'asignable_id' => $recursoEquipo['equipo_id'],
                         'asignable_type' => Equipo::class,
-                        'cantidad' => $recursoEquipo['cantidad'] ?? null,
-                        // Las fechas de asignación de equipo se toman de las fechas estimadas del proyecto
-                        'fecha_asignacion' => $fechaInicioProyecto,
-                        'fecha_fin_asignacion' => $fechaFinProyecto,
-                    ]
-                );
+                        'cantidad' => $recursoEquipo['cantidad'],
+                    ]);
+                }
             }
-        }
 
-        return $request->wantsJson()
-            ? response()->json(['message' => 'Proyecto y recursos actualizados', 'data' => $proyecto->load(['personalAsignado', 'equiposAsignados'])], 200)
-            : redirect()->route('proyectos.index')->with('alert', [
-                'type' => 'success',
-                'title' => '¡Éxito!',
-                'message' => 'Proyecto y recursos actualizados correctamente.',
-                'button' => 'Aceptar'
-            ]);
+            DB::commit(); // Confirmar transacción
+
+            return $request->wantsJson()
+                ? response()->json([
+                    'message' => 'Proyecto y recursos actualizados correctamente.',
+                    'data' => $proyecto->load(['personalAsignado', 'equiposAsignados'])
+                ], 200)
+                : redirect()->route('proyectos.index')->with('alert', [
+                    'type' => 'success',
+                    'title' => '¡Éxito!',
+                    'message' => 'Proyecto y recursos actualizados correctamente.',
+                    'button' => 'Aceptar'
+                ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack(); // Revertir transacción
+            \Log::error("Error al actualizar proyecto y recursos: " . $e->getMessage() . " en " . $e->getFile() . " línea " . $e->getLine());
+
+            return $request->wantsJson()
+                ? response()->json(['message' => 'Error al actualizar el proyecto y sus recursos.', 'error' => $e->getMessage()], 500)
+                : back()->withInput()->with('alert', [
+                    'type' => 'error',
+                    'title' => '¡Error!',
+                    'message' => 'Hubo un problema al actualizar el proyecto y sus recursos. ' . $e->getMessage(),
+                    'button' => 'Aceptar'
+                ]);
+        }
     }
 
     /**
-     * Elimina un proyecto de la base de datos (y sus recursos asociados por 'cascade').
+     * Elimina un proyecto de la base de datos.
+     * La eliminación de sus recursos asociados debe configurarse con 'cascade' en la migración de 'proyecto_recursos'.
+     *
+     * @param  \App\Models\Proyecto  $proyecto
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
      */
     public function destroy(Proyecto $proyecto, Request $request)
     {
-        $proyecto->delete(); // La eliminación en cascada en la migración de proyecto_recursos se encargará de los recursos
+        try {
+            $proyecto->delete(); // Esto debería disparar la eliminación en cascada si está configurada en la migración
 
-        return $request->wantsJson()
-            ? response()->json(['message' => 'Proyecto eliminado'], 204)
-            : redirect()->route('proyectos.index')->with('alert', [
-                'type' => 'success',
-                'title' => '¡Éxito!',
-                'message' => 'Proyecto eliminado correctamente.',
-                'button' => 'Aceptar'
-            ]);
+            return $request->wantsJson()
+                ? response()->json(['message' => 'Proyecto eliminado correctamente.'], 204)
+                : redirect()->route('proyectos.index')->with('alert', [
+                    'type' => 'success',
+                    'title' => '¡Éxito!',
+                    'message' => 'Proyecto eliminado correctamente.',
+                    'button' => 'Aceptar'
+                ]);
+        } catch (\Exception $e) {
+            \Log::error("Error al eliminar proyecto: " . $e->getMessage() . " en " . $e->getFile() . " línea " . $e->getLine());
+
+            return $request->wantsJson()
+                ? response()->json(['message' => 'Error al eliminar el proyecto.', 'error' => $e->getMessage()], 500)
+                : back()->with('alert', [
+                    'type' => 'error',
+                    'title' => '¡Error!',
+                    'message' => 'Hubo un problema al eliminar el proyecto. ' . $e->getMessage(),
+                    'button' => 'Aceptar'
+                ]);
+        }
     }
 
     /**
      * Exporta los proyectos filtrados a un archivo PDF usando Dompdf.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response|\Symfony\Component\HttpFoundation\BinaryFileResponse
      */
     public function exportarPdf(Request $request)
     {

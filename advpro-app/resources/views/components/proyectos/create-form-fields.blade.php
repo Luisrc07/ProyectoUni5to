@@ -20,28 +20,16 @@
     </div>
 
     <div class="flex gap-x-6 mb-6">
-        {{-- Fecha de Inicio --}}
+        {{-- Duración Estimada (en Minutos) --}}
         <label class="block w-full relative">
-            <span class="flex items-center mb-2 text-gray-600 text-sm font-medium dark:text-gray-400">Fecha de Inicio</span>
-            <input type="date" name="fecha_inicio" id="fecha_inicio" onchange="calculatePresupuesto()"
+            <span class="flex items-center mb-2 text-gray-600 text-sm font-medium dark:text-gray-400">Duración Estimada (Minutos)</span>
+            <input type="number" name="duracion_estimada_minutos" id="duracion_estimada_minutos" oninput="calculatePresupuesto()"
                 class="block w-full h-11 px-5 py-2.5 border border-gray-300 rounded-full placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
-                value="{{ old('fecha_inicio', $proyecto->fecha_inicio ?? '') }}" required
+                value="{{ old('duracion_estimada_minutos', $proyecto->duracion_estimada_minutos ?? 0) }}" min="0" required
             />
-            <p id="fechaInicioError" class="text-red-500 text-xs mt-1"></p>
+            <p id="duracionError" class="text-red-500 text-xs mt-1"></p>
         </label>
 
-        {{-- Fecha de Fin --}}
-        <label class="block w-full relative">
-            <span class="flex items-center mb-2 text-gray-600 text-sm font-medium dark:text-gray-400">Fecha de Fin</span>
-            <input type="date" name="fecha_fin" id="fecha_fin" onchange="calculatePresupuesto()"
-                class="block w-full h-11 px-5 py-2.5 border border-gray-300 rounded-full placeholder-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
-                value="{{ old('fecha_fin', $proyecto->fecha_fin ?? '') }}"
-            />
-            <p id="fechaFinError" class="text-red-500 text-xs mt-1"></p>
-        </label>
-    </div>
-
-    <div class="flex gap-x-6 mb-6">
         {{-- Presupuesto (Automático) --}}
         <label class="block w-full relative">
             <span class="flex items-center mb-2 text-gray-600 text-sm font-medium dark:text-gray-400">Presupuesto (Automático)</span>
@@ -50,7 +38,9 @@
                 step="0.01" value="{{ old('presupuesto', $proyecto->presupuesto ?? 0) }}" required
             />
         </label>
+    </div>
 
+    <div class="flex gap-x-6 mb-6">
         {{-- Estado --}}
         <label class="block w-full relative">
             <span class="flex items-center mb-2 text-gray-600 text-sm font-medium dark:text-gray-400">Estado</span>
@@ -61,9 +51,7 @@
                 <option value="Realizado" {{ old('estado', $proyecto->estado ?? '') == 'Realizado' ? 'selected' : '' }}>Realizado</option>
             </select>
         </label>
-    </div>
 
-    <div class="flex gap-x-6 mb-6">
         {{-- Lugar --}}
         <label class="block w-full relative">
             <span class="flex items-center mb-2 text-gray-600 text-sm font-medium dark:text-gray-400">Lugar (Opcional)</span>
@@ -72,8 +60,10 @@
                 placeholder="Lugar del proyecto" value="{{ old('lugar', $proyecto->lugar ?? '') }}"
             />
         </label>
+    </div>
 
-        {{-- Responsable --}}
+    {{-- Responsable --}}
+    <div class="mb-6">
         <label class="block w-full relative">
             <span class="flex items-center mb-2 text-gray-600 text-sm font-medium dark:text-gray-400">Responsable</span>
             <select name="responsable_id"
@@ -87,6 +77,7 @@
             </select>
         </label>
     </div>
+
 
     {{-- Sección de Personal Asignado --}}
     <div class="mb-6 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
@@ -132,7 +123,16 @@
             addEquipo(e.pivot.id, e.id, e.pivot.cantidad);
         });
 
-        calculatePresupuesto(); // Calcular presupuesto inicial
+        // Asegurarse de que personalIndex y equipoIndex sean mayores que los índices de los elementos ya cargados
+        // Esto evita que nuevos elementos sobrescriban los IDs existentes al usar `addPersonal()` o `addEquipo()`
+        // en un formulario de edición.
+        const maxPersonalIndex = initialPersonal.reduce((max, item) => Math.max(max, item.pivot.id), -1);
+        const maxEquipoIndex = initialEquipos.reduce((max, item) => Math.max(max, item.pivot.id), -1);
+        personalIndex = Math.max(personalIndex, maxPersonalIndex + 1);
+        equipoIndex = Math.max(equipoIndex, maxEquipoIndex + 1);
+
+
+        calculatePresupuesto(); // Calcular presupuesto inicial con la duración existente
         updateAllSelectOptions(); // Actualizar opciones de select al cargar
     });
 
@@ -148,7 +148,7 @@
         return ids;
     }
 
-    // Función para actualizar las opciones de todos los selectores
+    // Función para actualizar las opciones de todos los selectores (deshabilitando los ya seleccionados)
     function updateAllSelectOptions() {
         const personalSelects = document.querySelectorAll('#personal-container select[name$="[staff_id]"]');
         const equipoSelects = document.querySelectorAll('#equipos-container select[name$="[equipo_id]"]');
@@ -210,7 +210,7 @@
                     ${allPersonal.map(p => `<option value="${p.id}" ${p.id == staff_id ? 'selected' : ''}>${p.nombre} — ${p.documento}</option>`).join('')}
                 </select>
             </div>
-            <button type="button" x-on:click.stop="removePersonal(this)"
+            <button type="button" onclick="removePersonal(this)"
                 class="absolute top-2 right-2 text-red-500 hover:text-red-700 focus:outline-none">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
             </button>
@@ -227,7 +227,6 @@
         updateAllSelectOptions(); // Actualizar opciones después de eliminar
     }
 
-    // Modificado: Se eliminan los parámetros de fecha, se tomarán del proyecto
     function addEquipo(id = null, equipo_id = '', cantidad = 1) {
         const container = document.getElementById('equipos-container');
         const newDiv = document.createElement('div');
@@ -249,8 +248,7 @@
                 <input type="number" name="recursos_equipos[${equipoIndex}][cantidad]" value="${cantidad}" oninput="calculatePresupuesto()"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300" min="1" required>
             </div>
-            {{-- Las fechas de asignación de equipo se tomarán automáticamente de las fechas del proyecto --}}
-            <button type="button" x-on:click.stop="removeEquipo(this)"
+            <button type="button" onclick="removeEquipo(this)"
                 class="absolute top-2 right-2 text-red-500 hover:text-red-700 focus:outline-none">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
             </button>
@@ -269,43 +267,31 @@
 
     function calculatePresupuesto() {
         let totalPresupuesto = 0;
-        let projectDurationDays = 0;
+        const MINUTES_IN_DAY = 24 * 60; // 1440 minutos en un día
+        const MAX_DURATION_MINUTES = 31 * MINUTES_IN_DAY; // Duración máxima de 31 días en minutos
 
-        const fechaInicioInput = document.getElementById('fecha_inicio');
-        const fechaFinInput = document.getElementById('fecha_fin');
+        const duracionInput = document.getElementById('duracion_estimada_minutos');
         const presupuestoInput = document.getElementById('presupuesto');
-        const fechaInicioError = document.getElementById('fechaInicioError');
-        const fechaFinError = document.getElementById('fechaFinError');
+        const duracionError = document.getElementById('duracionError');
 
-        fechaInicioError.textContent = '';
-        fechaFinError.textContent = '';
+        duracionError.textContent = ''; // Limpiar mensajes de error previos
 
-        const startDate = fechaInicioInput.value ? new Date(fechaInicioInput.value) : null;
-        const endDate = fechaFinInput.value ? new Date(fechaFinInput.value) : null;
+        let duracionMinutos = parseFloat(duracionInput.value) || 0;
 
-        if (startDate && endDate) {
-            if (startDate > endDate) {
-                fechaFinError.textContent = 'La fecha de fin no puede ser anterior a la fecha de inicio.';
-                presupuestoInput.value = (0).toFixed(2);
-                return;
-            }
-            const diffTime = Math.abs(endDate - startDate);
-            projectDurationDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            if (projectDurationDays > 31) { // Aproximadamente 1 mes
-                fechaFinError.textContent = 'La duración del proyecto no puede ser mayor a 1 mes.';
-                presupuestoInput.value = (0).toFixed(2);
-                return;
-            }
-        } else if (startDate && !endDate) {
-            projectDurationDays = 0; // No hay fecha fin, duración 0 para cálculo
-        } else if (!startDate) {
-            // Si no hay fecha de inicio, no se puede calcular la duración
-            projectDurationDays = 0;
+        // Validación de duración
+        if (duracionMinutos < 0) {
+            duracionMinutos = 0; // Asegura que no sea negativo
+            duracionInput.value = 0; // Resetea el valor en el input si es negativo
+        }
+        if (duracionMinutos > MAX_DURATION_MINUTES) {
+            duracionError.textContent = `La duración no puede ser mayor a ${MAX_DURATION_MINUTES} minutos (aproximadamente 31 días).`;
+            presupuestoInput.value = (0).toFixed(2);
+            return;
         }
 
+        const projectDurationDays = duracionMinutos / MINUTES_IN_DAY; // Convertir minutos a días para el cálculo
 
-        // 2. Costo de Equipos (20% del valor total)
+        // 1. Costo de Equipos (20% del valor total)
         let totalValorEquipos = 0;
         const assignedEquiposElements = document.querySelectorAll('#equipos-container select[name$="[equipo_id]"]');
         assignedEquiposElements.forEach(selectElement => {
@@ -321,12 +307,12 @@
         });
         totalPresupuesto += totalValorEquipos * 0.20; // 20% del valor total de los equipos
 
-        // 3. Aumento por Duración del Proyecto (Criterio: $50 por día)
+        // 2. Aumento por Duración del Proyecto (Criterio: $50 por día)
         if (projectDurationDays > 0) {
             totalPresupuesto += projectDurationDays * 50; // $50 por día de duración del proyecto
         }
 
-        // 4. Aumento por Personal Agregado (Criterio: $100 por persona por día)
+        // 3. Aumento por Personal Agregado (Criterio: $100 por persona por día)
         const assignedPersonalElements = document.querySelectorAll('#personal-container select[name$="[staff_id]"]');
         assignedPersonalElements.forEach(selectElement => {
             if (selectElement.value && projectDurationDays > 0) {

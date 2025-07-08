@@ -16,13 +16,13 @@ class ProyectoRecurso extends Pivot
         'asignable_id',
         'asignable_type',
         'cantidad', // Para equipos, será null para personal
-        'fecha_asignacion',
-        'fecha_fin_asignacion',
+        // 'fecha_asignacion', // ¡ELIMINADO!
+        // 'fecha_fin_asignacion', // ¡ELIMINADO!
     ];
 
     protected $casts = [
-        'fecha_asignacion' => 'date',
-        'fecha_fin_asignacion' => 'date',
+        // 'fecha_asignacion' => 'date', // ¡ELIMINADO!
+        // 'fecha_fin_asignacion' => 'date', // ¡ELIMINADO!
     ];
 
     /**
@@ -42,4 +42,3 @@ class ProyectoRecurso extends Pivot
         return $this->belongsTo(Proyecto::class);
     }
 }
-
