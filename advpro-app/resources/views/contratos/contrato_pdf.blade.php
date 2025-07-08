@@ -67,7 +67,7 @@
         <div class="section">
             <h3>2. Plazo de Ejecución</h3>
             <p>
-                El proyecto se ejecutará entre el <strong>{{ $contrato->fecha_contrato->format('d/m/Y') }}</strong> y el <strong>[fecha de entrega]</strong>, salvo causas de fuerza mayor debidamente justificadas.
+                El proyecto se ejecutará entre el <strong>{{ $contrato->fecha_contrato->format('d/m/Y') }}</strong> y el <strong>{{$contrato->fecha_entrega->format('d/m/Y') }}</strong>, salvo causas de fuerza mayor debidamente justificadas.
             </p>
         </div>
 

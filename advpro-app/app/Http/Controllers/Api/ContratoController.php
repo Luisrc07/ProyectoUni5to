@@ -9,6 +9,7 @@ use App\Models\Proyecto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf; // Importar la clase PDF
+use Carbon\Carbon; 
 
 class ContratoController extends Controller
 {
@@ -53,21 +54,43 @@ class ContratoController extends Controller
     }
 
     public function store(Request $request)
-    {
+     {
+        // AÑADIDO: Lógica de validación personalizada
         $validated = $request->validate([
             'id_cliente' => 'required|exists:clientes,id',
             'id_proyecto' => 'required|exists:proyectos,id',
-            'fecha_contrato' => 'required|date',
+            // VALIDACIÓN 1: La fecha no puede ser anterior a la constitución de la empresa
+            'fecha_contrato' => 'required|date|after_or_equal:2018-01-01',
+            // VALIDACIÓN 2: La fecha de entrega tiene un límite de 10 años
+            'fecha_entrega' => [
+                'sometimes',
+                'date',
+                'after_or_equal:fecha_contrato',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->filled('fecha_contrato')) {
+                        $fechaContrato = Carbon::parse($request->input('fecha_contrato'));
+                        $fechaEntrega = Carbon::parse($value);
+                        $maxFechaEntrega = $fechaContrato->copy()->addYears(10);
+
+                        if ($fechaEntrega->gt($maxFechaEntrega)) {
+                            $fail('La fecha de entrega no puede exceder los 10 años desde la fecha del contrato.');
+                        }
+                    }
+                },
+            ],
             'estado' => 'required|string|in:activo,inactivo,finalizado,pendiente',
             'costo' => 'required|numeric|min:0',
-            // 'serial' ya no es requerido aquí, se genera en el modelo
+        ], [
+            // AÑADIDO: Mensajes de error personalizados
+            'fecha_contrato.after_or_equal' => 'La fecha del contrato no puede ser anterior a la constitución de la empresa (01/01/2018).',
+            'fecha_entrega.after_or_equal' => 'La fecha de entrega no puede ser anterior a la fecha del contrato.',
         ]);
 
         if ($request->hasFile('documento')) {
             $validated['documento'] = $request->file('documento')->store('documentos');
         }
 
-        $contrato = Contrato::create($validated); // El serial se generará automáticamente aquí
+        $contrato = Contrato::create($validated);
 
         return $request->wantsJson()
             ? response()->json(['message' => 'Contrato creado', 'data' => $contrato], 201)
@@ -93,13 +116,35 @@ class ContratoController extends Controller
 
     public function update(Request $request, Contrato $contrato)
     {
+        // AÑADIDO: Lógica de validación personalizada para la actualización
         $validated = $request->validate([
             'id_cliente' => 'sometimes|required|exists:clientes,id',
             'id_proyecto' => 'sometimes|required|exists:proyectos,id',
-            'fecha_contrato' => 'sometimes|date',
+             // VALIDACIÓN 1: La fecha no puede ser anterior a la constitución de la empresa
+            'fecha_contrato' => 'sometimes|date|after_or_equal:2018-01-01',
+            // VALIDACIÓN 2: La fecha de entrega tiene un límite de 10 años
+            'fecha_entrega' => [
+                'sometimes',
+                'date',
+                'after_or_equal:fecha_contrato',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->filled('fecha_contrato')) {
+                        $fechaContrato = Carbon::parse($request->input('fecha_contrato'));
+                        $fechaEntrega = Carbon::parse($value);
+                        $maxFechaEntrega = $fechaContrato->copy()->addYears(10);
+
+                        if ($fechaEntrega->gt($maxFechaEntrega)) {
+                            $fail('La fecha de entrega no puede exceder los 10 años desde la fecha del contrato.');
+                        }
+                    }
+                },
+            ],
             'estado' => 'sometimes|string|in:activo,inactivo,finalizado,pendiente',
             'costo' => 'sometimes|required|numeric|min:0',
-            // 'serial' no debe ser actualizable manualmente
+        ], [
+            // AÑADIDO: Mensajes de error personalizados
+            'fecha_contrato.after_or_equal' => 'La fecha del contrato no puede ser anterior a la constitución de la empresa (01/01/2018).',
+            'fecha_entrega.after_or_equal' => 'La fecha de entrega no puede ser anterior a la fecha del contrato.',
         ]);
 
         if ($request->hasFile('documento')) {

@@ -10,7 +10,12 @@
         {{ $item->proyecto->nombre }}
     </td>
     <td class="px-4 py-3 text-sm">
-        {{ $item->fecha_contrato->format('d/m/Y') }}
+        {{-- CORREGIDO: Se aplica la misma verificación por seguridad --}}
+        {{ $item->fecha_contrato ? $item->fecha_contrato->format('d/m/Y') : 'Sin fecha' }}
+    </td>
+    <td class="px-4 py-3 text-sm">
+        {{-- CORREGIDO: Verificar si la fecha existe antes de formatear --}}
+        {{ $item->fecha_entrega ? $item->fecha_entrega->format('d/m/Y') : 'No asignada' }}
     </td>
     <td class="px-4 py-3 text-sm">
         {{ number_format($item->costo, 2) }}

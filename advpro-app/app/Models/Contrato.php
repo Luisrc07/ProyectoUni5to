@@ -17,13 +17,15 @@ class Contrato extends Model
         'id_cliente',
         'id_proyecto',
         'fecha_contrato',
+        'fecha_entrega', // Asegúrate de que esté aquí
         'costo',
         'estado',
-        'serial' // Agregar el campo serial
+        'serial'
     ];
 
     protected $casts = [
         'fecha_contrato' => 'date',
+        'fecha_entrega' => 'date', // ¡AÑADE ESTA LÍNEA!
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
@@ -31,9 +33,9 @@ class Contrato extends Model
     // Función para generar un serial único
     protected static function generateUniqueSerial()
     {
-        $serial = Str::random(5); // Genera un string aleatorio de 5 caracteres
+        $serial = Str::random(5);
         while (self::where('serial', $serial)->exists()) {
-            $serial = Str::random(5); // Regenerar si ya existe
+            $serial = Str::random(5);
         }
         return $serial;
     }
@@ -43,7 +45,7 @@ class Contrato extends Model
         parent::boot();
 
         static::creating(function ($contrato) {
-            $contrato->serial = self::generateUniqueSerial(); // Asignar el serial antes de crear
+            $contrato->serial = self::generateUniqueSerial();
         });
     }
 
