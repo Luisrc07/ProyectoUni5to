@@ -69,11 +69,11 @@ class CuentaContableSeeder extends Seeder
                     $insertAccount('120102', 'Equipo de Edición (Computadoras, Software)', 'activo', true, '1201');
                     $insertAccount('120103', 'Mobiliario y Equipo de Oficina', 'activo', true, '1201');
                     $insertAccount('120104', 'Vehículos', 'activo', true, '1201');
-                $insertAccount('1202', 'Depreciación Acumulada', 'pasivo', false, '1200');
-                    $insertAccount('120201', 'Depreciación Acumulada Equipo de Grabación', 'pasivo', true, '1202');
-                    $insertAccount('120202', 'Depreciación Acumulada Equipo de Edición', 'pasivo', true, '1202');
-                    $insertAccount('120203', 'Depreciación Acumulada Mobiliario y Equipo de Oficina', 'pasivo', true, '1202');
-                    $insertAccount('120204', 'Depreciación Acumulada Vehículos', 'pasivo', true, '1202');
+                $insertAccount('1202', 'Depreciación Acumulada', 'activo', false, '1200');
+                    $insertAccount('120201', 'Depreciación Acumulada Equipo de Grabación', 'activo', true, '1202');
+                    $insertAccount('120202', 'Depreciación Acumulada Equipo de Edición', 'activo', true, '1202');
+                    $insertAccount('120203', 'Depreciación Acumulada Mobiliario y Equipo de Oficina', 'activo', true, '1202');
+                    $insertAccount('120204', 'Depreciación Acumulada Vehículos', 'activo', true, '1202');
 
         // 2. PASIVO
         $insertAccount('2000', 'PASIVO', 'pasivo');

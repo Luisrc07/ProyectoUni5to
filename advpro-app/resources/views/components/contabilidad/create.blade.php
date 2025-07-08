@@ -15,6 +15,13 @@
         </div>
     @endif
 
+    {{-- Mensaje de Alerta para el asiento de Constitución --}}
+    @if (!$asientoConstitucionExiste)
+        <div class="p-4 mb-4 text-sm text-blue-700 bg-blue-100 rounded-lg dark:bg-blue-200 dark:text-blue-800" role="alert">
+            <span class="font-medium">¡Atención!</span> Este es el PRIMER asiento contable de la empresa. Por favor, registra el asiento de *"Constitucion"* para iniciar el historial contable.
+        </div>
+    @endif
+
     <form id="asiento-form" action="{{ route('contabilidad.store') }}" method="POST">
         @csrf
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -24,7 +31,13 @@
             </div>
             <div>
                 <label for="descripcion" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción General</label>
-                <input type="text" class="block w-full mt-1 text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input" id="descripcion" name="descripcion" value="{{ old('descripcion') }}" required>
+                <input type="text"
+                       class="block w-full mt-1 text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
+                       id="descripcion"
+                       name="descripcion"
+                       value="{{ old('descripcion', $asientoConstitucionExiste ? '' : 'Constitucion') }}"
+                       {{ $asientoConstitucionExiste ? '' : 'readonly' }}
+                       required>
             </div>
         </div>
 
@@ -37,7 +50,6 @@
                     <tr class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
                         <th class="px-4 py-3">Cuenta Contable</th>
                         <th class="px-4 py-3">Descripción (Línea)</th>
-                        {{-- Aumentado el ancho de las columnas Debe y Haber --}}
                         <th class="px-4 py-3 w-1/4">Debe</th>
                         <th class="px-4 py-3 w-1/4">Haber</th>
                         <th class="px-4 py-3">Acción</th>
@@ -70,10 +82,11 @@
         const addRowBtn = document.getElementById('add-row');
         const totalDebeEl = document.getElementById('total-debe');
         const totalHaberEl = document.getElementById('total-haber');
+        const descripcionInput = document.getElementById('descripcion');
         let rowIndex = 0;
 
-        // Se asume que la variable $cuentas está disponible en el scope de esta vista
         const cuentasOptions = @json($cuentas ?? []);
+        const asientoConstitucionExists = @json($asientoConstitucionExiste ?? false);
 
         function createRow() {
             const tr = document.createElement('tr');
@@ -88,7 +101,6 @@
                 <td class="px-4 py-3">
                     <input type="text" name="detalles[${rowIndex}][descripcion_linea]" class="block w-full mt-1 text-sm dark:border-gray-600 dark:bg-gray-700 form-input">
                 </td>
-                {{-- Modificado el ancho de los inputs para que sean más grandes --}}
                 <td class="px-4 py-3">
                     <input type="number" name="detalles[${rowIndex}][debe]" style="width: 120px;" class="block mt-1 text-sm text-right dark:border-gray-600 dark:bg-gray-700 form-input debe px-2" step="0.01" value="0.00" required>
                 </td>
@@ -96,7 +108,6 @@
                     <input type="number" name="detalles[${rowIndex}][haber]" style="width: 120px;" class="block mt-1 text-sm text-right dark:border-gray-600 dark:bg-gray-700 form-input haber px-2" step="0.01" value="0.00" required>
                 </td>
                 <td class="px-4 py-3">
-                    {{-- Añadido preventDefault directamente en el onclick para evitar el envío del formulario --}}
                     <button type="button" class="px-3 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-red-600 border border-transparent rounded-md active:bg-red-600 hover:bg-red-700 remove-row">X</button>
                 </td>
             `;
@@ -106,18 +117,15 @@
         }
 
         function updateEventListeners() {
-            // Eliminar filas
             tbody.querySelectorAll('.remove-row').forEach(btn => {
-                // Eliminar listener antiguo para evitar duplicados
                 btn.onclick = null;
                 btn.onclick = (e) => {
-                    e.preventDefault(); // IMPORTANTE: Previene la acción por defecto del botón
+                    e.preventDefault();
                     e.target.closest('tr').remove();
                     calculateTotals();
                 };
             });
 
-            // Lógica de inputs (Debe/Haber)
             tbody.querySelectorAll('.debe, .haber').forEach(input => {
                 input.oninput = null;
                 input.oninput = (e) => {
@@ -125,7 +133,6 @@
                     const debeInput = currentRow.querySelector('.debe');
                     const haberInput = currentRow.querySelector('.haber');
 
-                    // MEJORA: Si se escribe en un campo, el otro se deshabilita y se pone en cero.
                     if (e.target.classList.contains('debe')) {
                         if (parseFloat(e.target.value) > 0) {
                             haberInput.value = '0.00';
@@ -150,7 +157,6 @@
             let totalDebe = 0;
             let totalHaber = 0;
             tbody.querySelectorAll('tr').forEach(tr => {
-                // Asegúrate de que los inputs existan antes de acceder a su valor
                 const debeInput = tr.querySelector('.debe');
                 const haberInput = tr.querySelector('.haber');
 
@@ -163,21 +169,29 @@
 
         addRowBtn.onclick = createRow;
 
-        // MEJORA: Validación en el lado del cliente antes de enviar
         form.addEventListener('submit', function(e) {
             const totalDebe = parseFloat(totalDebeEl.textContent);
             const totalHaber = parseFloat(totalHaberEl.textContent);
-            
+             
             if (totalDebe !== totalHaber) {
-                e.preventDefault(); // Detiene el envío del formulario
+                e.preventDefault();
                 alert('Error: El total del Debe y el Haber no coinciden.');
             } else if (totalDebe === 0 && totalHaber === 0) {
                 e.preventDefault();
                 alert('Error: El asiento no puede tener un valor de cero.');
             }
+
+            // Validación adicional para la descripción 'Constitucion' en el cliente
+            if (!asientoConstitucionExists && descripcionInput.value.toLowerCase() !== 'constitucion') {
+                e.preventDefault();
+                alert('Error: Debe registrar el asiento de "Constitución" primero.');
+                descripcionInput.value = 'Constitucion';
+            } else if (asientoConstitucionExists && descripcionInput.value.toLowerCase() === 'constitucion') {
+                e.preventDefault();
+                alert('Error: Ya existe un asiento con la descripción "Constitución". No se puede crear otro.');
+            }
         });
 
-        // Crear dos filas iniciales para empezar
         createRow();
         createRow();
     });

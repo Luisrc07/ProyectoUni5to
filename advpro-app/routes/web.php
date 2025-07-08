@@ -72,21 +72,34 @@ Route::middleware('auth')->group(function () {
     Route::resource('personal',  PersonalController::class);
     Route::resource('equipos',   EquipoController::class);
 
-    // Contabilidad
-    // (Se usa prefix para poder manejar mas funciones en el controlador
-    // Fuera de los predefinidos, y el manejo de varios modelos.)
+
+
+        //Contabilidad
+    //(Se usa prefix para poder manejar mas funciones en el controlador
+    //Fuera de los predefinidos, y el manejo de varios modelos.)
     Route::prefix('contabilidad')->group(function () {
-        // Ruta para el panel principal de contabilidad
-        Route::get('panel', [ContabilidadController::class, 'index'])->name('contabilidad.index');
 
-        // Ruta para guardar un nuevo asiento contable
-        Route::post('asientos', [ContabilidadController::class, 'store'])->name('contabilidad.store');
+    // Ruta para el panel principal de contabilidad
+    Route::get('panel', [ContabilidadController::class, 'index'])->name('contabilidad.index');
 
-        // Ruta: Para guardar una nueva cuenta contable
-        Route::post('cuentas', [ContabilidadController::class, 'storeCuenta'])->name('contabilidad.cuentas.store');
-    }); // Cierre correcto del grupo 'contabilidad'
-}); // Cierre correcto del grupo 'auth'
+    // Ruta para guardar un nuevo asiento contable
+    Route::post('asientos', [ContabilidadController::class, 'store'])->name('contabilidad.store');
 
+    // NUEVA RUTA: Para guardar una nueva cuenta contable
+    Route::post('cuentas', [ContabilidadController::class, 'storeCuenta'])->name('contabilidad.cuentas.store');
+
+    // 1. Devuelve cuentas padre filtradas por tipo (para el select dinámico)
+    Route::get('cuentas/por-tipo/{tipo}', [ContabilidadController::class, 'getCuentasPorTipo'])->name('contabilidad.cuentas.porTipo');
+    
+    // 2. Devuelve el siguiente código disponible basado en la cuenta padre (o el tipo)
+    Route::get('cuentas/siguiente-codigo', [ContabilidadController::class, 'getSiguienteCodigo'])->name('contabilidad.cuentas.siguienteCodigo');
+
+
+
+        }); // Cierre correcto del grupo 'auth'
+
+
+});
 // 4. Ruta pública de bienvenida (accesible para todos)
 Route::get('/welcome', fn() => view('welcome'))->name('welcome');
 
