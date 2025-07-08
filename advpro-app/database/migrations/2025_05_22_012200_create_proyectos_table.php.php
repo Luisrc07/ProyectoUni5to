@@ -20,8 +20,7 @@ return new class extends Migration
             $table->decimal('presupuesto', 10, 2); // 'decimal' es ideal para valores monetarios
             $table->string('estado');
             $table->string('lugar')->nullable(); // 'lugar' es opcional en el formulario
-            $table->date('fecha_inicio_estimada')->nullable(); // Añadido: fecha de inicio estimada (opcional)
-            $table->date('fecha_fin_estimada')->nullable(); // Añadido: fecha de fin estimada (opcional)
+          
 
             // Columna y clave foránea para el responsable del proyecto (staff)
             // Si el staff es eliminado, el responsable_id en proyectos se establecerá a null

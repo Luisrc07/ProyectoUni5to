@@ -23,8 +23,7 @@ return new class extends Migration
 
             // Atributos específicos de la asignación
             $table->integer('cantidad')->nullable(); // Cantidad para equipos (null para personal)
-            $table->date('fecha_asignacion');
-            $table->date('fecha_fin_asignacion')->nullable();
+      
 
             $table->timestamps();
 
