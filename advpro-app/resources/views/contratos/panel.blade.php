@@ -10,12 +10,12 @@
             </x-button>
         </div>
 
-        <x-table :headers="['Cliente', 'Proyecto', 'Fecha', 'Costo', 'Estado', 'Opciones']">
+        <x-table :headers="['Cliente', 'Proyecto', 'Fecha', 'Costo', 'Estado', 'Serial', 'Opciones']"> {{-- Se agregó 'Serial' --}}
             @forelse ($contratos as $contrato)
                 @include('components.contratos.table-row', ['item' => $contrato, 'route_prefix' => 'contratos'])
             @empty
                 <tr class="text-gray-700 dark:text-gray-400">
-                    <td class="px-4 py-3 text-center" colspan="6">No hay contratos para mostrar.</td>
+                    <td class="px-4 py-3 text-center" colspan="7">No hay contratos para mostrar.</td> {{-- Se ajustó el colspan --}}
                 </tr>
             @endforelse
         </x-table>

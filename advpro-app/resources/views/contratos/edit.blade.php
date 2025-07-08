@@ -10,6 +10,14 @@
         @csrf
         @method('PUT')
 
+        {{-- Mostrar el serial del contrato (solo lectura) --}}
+        <label class="block mt-2 text-sm">
+            <span class="text-gray-700 dark:text-gray-400">Serial del Contrato</span>
+            <input type="text" value="{{ $contrato->serial }}" readonly
+                class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input cursor-not-allowed"
+            />
+        </label>
+
         <label class="block mt-2 text-sm">
           <span class="text-gray-700 dark:text-gray-400">Cliente</span>
           <select name="id_cliente" class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray">

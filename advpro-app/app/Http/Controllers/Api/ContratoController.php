@@ -8,11 +8,33 @@ use App\Models\Cliente;
 use App\Models\Proyecto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf; // Importar la clase PDF
 
 class ContratoController extends Controller
 {
+    // ... (métodos index, create, store, show, edit, update, destroy existentes)
+
+    /**
+     * Genera un PDF para el contrato especificado.
+     *
+     * @param  \App\Models\Contrato  $contrato
+     * @return \Illuminate\Http\Response
+     */
+    public function generarPdf(Contrato $contrato)
+    {
+        // Cargar las relaciones necesarias
+        $contrato->load(['cliente', 'proyecto']);
+
+        // Pasar los datos a la vista del PDF
+        $pdf = PDF::loadView('contratos.contrato_pdf', compact('contrato'));
+
+        // Retornar el PDF para ser visualizado en el navegador
+        return $pdf->stream('contrato-'.$contrato->serial.'.pdf');
+    }
+
     public function index(Request $request)
     {
+        // Asegurarse de que el serial esté disponible si se requiere para el panel.
         $contratos = Contrato::with(['cliente', 'proyecto'])->paginate(10);
         $clientes = Cliente::all();
         $proyectos = Proyecto::all();
@@ -38,13 +60,14 @@ class ContratoController extends Controller
             'fecha_contrato' => 'required|date',
             'estado' => 'required|string|in:activo,inactivo,finalizado,pendiente',
             'costo' => 'required|numeric|min:0',
+            // 'serial' ya no es requerido aquí, se genera en el modelo
         ]);
 
         if ($request->hasFile('documento')) {
             $validated['documento'] = $request->file('documento')->store('documentos');
         }
 
-        $contrato = Contrato::create($validated);
+        $contrato = Contrato::create($validated); // El serial se generará automáticamente aquí
 
         return $request->wantsJson()
             ? response()->json(['message' => 'Contrato creado', 'data' => $contrato], 201)
@@ -73,9 +96,10 @@ class ContratoController extends Controller
         $validated = $request->validate([
             'id_cliente' => 'sometimes|required|exists:clientes,id',
             'id_proyecto' => 'sometimes|required|exists:proyectos,id',
-            'fecha_contrato' => 'sometimes|date', 
+            'fecha_contrato' => 'sometimes|date',
             'estado' => 'sometimes|string|in:activo,inactivo,finalizado,pendiente',
             'costo' => 'sometimes|required|numeric|min:0',
+            // 'serial' no debe ser actualizable manualmente
         ]);
 
         if ($request->hasFile('documento')) {

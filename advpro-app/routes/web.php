@@ -22,9 +22,7 @@ use App\Http\Controllers\Api\ContabilidadController;
 | - Cualquier otra ruta desconocida dispara el fallback.
 |
 */
-
-// Las rutas de autenticación de Laravel (login, register, reset password, etc.)
-Auth::routes(); 
+Auth::routes();
 
 // 1. Ruta raíz para invitados: redirige a /login.
 //    Si ya estás autenticado, el middleware 'guest' te enviará a /home.
@@ -57,21 +55,25 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     // Reportes (Definidas antes de los recursos para evitar conflictos si las URLs se superponen)
-    // Es crucial que estas rutas específicas vayan antes de las Route::resource si comparten prefijos de URL.
-    Route::get('clientes/reporte',      [ClienteController::class,   'generarReporte'])->name('clientes.reporte');
-    Route::get('equipos/reporte',       [EquipoController::class,    'generarReporte'])->name('equipos.generarReporte'); // Nombre de ruta corregido
-    Route::get('proyectos/exportar-pdf', [ProyectoController::class, 'exportarPdf'])->name('proyectos.exportar-pdf');
-    Route::get('personal/reporte-pdf',   [PersonalController::class, 'exportarPdf'])->name('personal.exportar-pdf');
+    Route::get('clientes/reporte',      [ClienteController::class,  'generarReporte'])->name('clientes.reporte');
+    Route::get('equipos/reporte',       [EquipoController::class,   'generarReporte'])->name('equipos.reporte');
+    Route::get('proyectos/exportar-pdf', [ProyectoController::class,'exportarPdf'])->name('proyectos.exportar-pdf');
+    Route::get('personal/reporte-pdf',   [PersonalController::class,'exportarPdf'])->name('personal.exportar-pdf');
+    
+    // Nueva ruta para generar el PDF del contrato
+    Route::get('contratos/{contrato}/pdf', [ContratoController::class, 'generarPdf'])->name('contratos.pdf');
+
 
     // Recursos (CRUD completo para cada modelo)
     // Estas rutas generarán métodos como index, create, store, show, edit, update, destroy.
     Route::resource('clientes',  ClienteController::class);
     Route::resource('contratos', ContratoController::class);
-    Route::resource('proyectos', ProyectoController::class); 
+    Route::resource('proyectos', ProyectoController::class);
     Route::resource('personal',  PersonalController::class);
     Route::resource('equipos',   EquipoController::class);
 
-    // Contabilidad (Se usa prefix para poder manejar mas funciones en el controlador
+    // Contabilidad
+    // (Se usa prefix para poder manejar mas funciones en el controlador
     // Fuera de los predefinidos, y el manejo de varios modelos.)
     Route::prefix('contabilidad')->group(function () {
         // Ruta para el panel principal de contabilidad
@@ -82,8 +84,8 @@ Route::middleware('auth')->group(function () {
 
         // Ruta: Para guardar una nueva cuenta contable
         Route::post('cuentas', [ContabilidadController::class, 'storeCuenta'])->name('contabilidad.cuentas.store');
-    });
-});
+    }); // Cierre correcto del grupo 'contabilidad'
+}); // Cierre correcto del grupo 'auth'
 
 // 4. Ruta pública de bienvenida (accesible para todos)
 Route::get('/welcome', fn() => view('welcome'))->name('welcome');
