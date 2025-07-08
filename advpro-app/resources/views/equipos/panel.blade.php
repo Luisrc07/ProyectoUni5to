@@ -114,7 +114,7 @@
             </form>
 
             {{-- Botón "Generar Reporte" --}}
-            <a href="{{ route('equipos.generarReporte', request()->query()) }}" target="_blank"
+            <a href="{{ route('equipos.reporte',request()->query()) }}" target="_blank"
                 class="px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-red-600 border border-transparent rounded-lg active:bg-red-600 hover:bg-red-700 focus:outline-none focus:shadow-outline-purple flex items-center justify-center gap-2"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
