@@ -32,9 +32,11 @@ class EquipoFactory extends Factory
             'nombre' => $this->faker->words(2, true), 
             'descripcion' => $this->faker->sentence(), 
             'marca' => $this->faker->company(), 
-            'tipo_equipo' => $this->faker->randomElement(['Computadora', 'Impresora', 'Monitor', 'Teclado', 'Mouse', 'Router', 'Servidor']), 
+            'tipo_equipo' => $this->faker->randomElement(['Fotografia', 'Sonido', 'Video', 'Iluminacion']), 
             'estado' => $this->faker->randomElement(['Nuevo', 'Usado', 'Reparado']), 
             'ubicacion' => $this->faker->address(),
+            'cantidad' => $this->faker->numberBetween(1, 10),
+            'valor' => $this->faker->randomFloat(2, 10, 1000),
             'responsable' => $this->faker->randomElement($staffIds) ?? null, // Asigna un ID de staff existente, o null si no hay staff
         ];
     }
