@@ -46,7 +46,7 @@
 
         <label class="block mt-2 text-sm">
           <span class="text-gray-700 dark:text-gray-400">Fecha del Contrato</span>
-          <input type="date" name="fecha_contrato" id="fecha-inicio-proyecto-create"
+          <input type="date" name="fecha_contrato" id="fecha-inicio-proyecto-edit"
             class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
             value="{{ old('fecha_contrato', $contrato->fecha_contrato ? $contrato->fecha_contrato->format('Y-m-d') : '') }}"
           />
@@ -58,7 +58,7 @@
         {{-- CORREGIDO: Fecha de Entrega --}}
         <label class="block mt-2 text-sm">
           <span class="text-gray-700 dark:text-gray-400">Fecha de Entrega</span>
-          <input type="date" name="fecha_entrega" id="fecha-fin-proyecto-create"
+          <input type="date" name="fecha_entrega" id="fecha-fin-proyecto-edit"
             class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
             value="{{ old('fecha_entrega', $contrato->fecha_entrega ? $contrato->fecha_entrega->format('Y-m-d') : '') }}"
           />
