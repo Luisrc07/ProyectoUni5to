@@ -31,7 +31,8 @@
             @click.away="isModalOpen = false"
             @keydown.escape.window="isModalOpen = false"
         >
-            @include('components.contratos.create-form-fields')
+            {{-- Pasa $proyectosJson y $clientsJson al componente de campos del formulario --}}
+            @include('components.contratos.create-form-fields', ['proyectosJson' => $proyectosJson, 'clientsJson' => $clientsJson])
         </x-create-modal>
     </div>
 </x-layouts.app>

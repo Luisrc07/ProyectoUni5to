@@ -3,12 +3,12 @@
     <h2 class="mb-6 text-2xl font-semibold text-gray-700 dark:text-gray-200">
         Equipos
     </h2>
-    
+
     <div x-data="{ isModalOpen: false, openModal() { this.isModalOpen = true }, closeModal() { this.isModalOpen = false } }">
 
         {{-- Contenedor de Botones y Filtros --}}
         <div class="flex items-end justify-between mb-6">
-            
+
             {{-- Botón "Nuevo Equipo" --}}
             <x-button @click="openModal" type="button" class="px-4 py-2">
                 Nuevo Equipo
@@ -16,7 +16,7 @@
 
             {{-- Formulario de Filtros --}}
             <form action="{{ route('equipos.index') }}" method="GET" class="flex items-end space-x-4">
-                
+
                 {{-- Filtro por Estado --}}
                 <div class="flex flex-col items-start">
                     <label for="estado_filtro" class="text-xs font-bold text-gray-400 dark:text-gray-400 mb-1 uppercase">Estado</label>
@@ -29,7 +29,7 @@
                         <option value="Reparado" {{ request('estado') == 'Reparado' ? 'selected' : '' }}>Reparado</option>
                     </select>
                 </div>
-                
+
                 {{-- Filtro por Fecha de Creación --}}
                 <div class="flex flex-col items-start">
                     <label for="fecha_creacion_filtro" class="text-xs font-bold text-gray-400 dark:text-gray-400 mb-1 uppercase">Fecha de Creación</label>
@@ -49,13 +49,20 @@
                         class="block w-40 h-9 px-4 py-2 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray rounded-lg border-2 border-gray-700 shadow-inner"
                     >
                         <option value="">Todos</option>
-                        <option value="Fotografía" {{ request('tipo_equipo') == 'Fotografía' ? 'selected' : '' }}>Fotografía</option>
-                        <option value="Video" {{ request('tipo_equipo') == 'Video' ? 'selected' : '' }}>Video</option>
-                        <option value="Sonido" {{ request('tipo_equipo') == 'Sonido' ? 'selected' : '' }}>Sonido</option>
+                        <option value="Cámara" {{ request('tipo_equipo') == 'Cámara' ? 'selected' : '' }}>Cámara</option>
+                        <option value="Lente" {{ request('tipo_equipo') == 'Lente' ? 'selected' : '' }}>Lente</option>
                         <option value="Iluminación" {{ request('tipo_equipo') == 'Iluminación' ? 'selected' : '' }}>Iluminación</option>
+                        <option value="Sonido" {{ request('tipo_equipo') == 'Sonido' ? 'selected' : '' }}>Sonido</option>
+                        <option value="Trípode" {{ request('tipo_equipo') == 'Trípode' ? 'selected' : '' }}>Trípode</option>
+                        <option value="Estabilizador" {{ request('tipo_equipo') == 'Estabilizador' ? 'selected' : '' }}>Estabilizador</option>
+                        <option value="Micrófono" {{ request('tipo_equipo') == 'Micrófono' ? 'selected' : '' }}>Micrófono</option>
+                        <option value="Monitor" {{ request('tipo_equipo') == 'Monitor' ? 'selected' : '' }}>Monitor</option>
+                        <option value="Batería" {{ request('tipo_equipo') == 'Batería' ? 'selected' : '' }}>Batería</option>
+                        <option value="Cable" {{ request('tipo_equipo') == 'Cable' ? 'selected' : '' }}>Cable</option>
+                        <option value="Otro" {{ request('tipo_equipo') == 'Otro' ? 'selected' : '' }}>Otro</option>
                     </select>
                 </div>
-                
+
                 {{-- FILTRO POR RESPONSABLE --}}
                 <div class="flex flex-col items-start">
                     <label for="responsable_filtro" class="text-xs font-bold text-gray-400 dark:text-gray-400 mb-1 uppercase">Responsable</label>
@@ -64,7 +71,7 @@
                     >
                         <option value="">Todos</option>
                         @foreach ($personal as $persona)
-                            <option value="{{ $persona->id }}" 
+                            <option value="{{ $persona->id }}"
                                 {{ request('responsable') == $persona->id ? 'selected' : '' }}
                                 class="truncate"
                             >
@@ -107,7 +114,7 @@
             </form>
 
             {{-- Botón "Generar Reporte" --}}
-            <a href="{{ route('equipos.reporte', request()->query()) }}" target="_blank"
+            <a href="{{ route('equipos.reporte',request()->query()) }}" target="_blank"
                 class="px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-red-600 border border-transparent rounded-lg active:bg-red-600 hover:bg-red-700 focus:outline-none focus:shadow-outline-purple flex items-center justify-center gap-2"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -140,17 +147,15 @@
             </div>
         @endif
 
-        {{-- Modal para crear equipo --}}
         <x-create-modal
             modal_title="Crear Equipo"
             form_action="{{ route('equipos.store') }}"
-            x-show="isModalOpen" 
+            x-show="isModalOpen"
             @click.away="closeModal"
             @keydown.escape.window="closeModal"
         >
             @include('components.equipos.create-form-fields', ['personal' => $personal])
         </x-create-modal>
 
-    </div> 
-
+    </div>
 </x-layouts.app>

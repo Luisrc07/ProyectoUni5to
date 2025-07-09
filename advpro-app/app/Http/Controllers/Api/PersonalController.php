@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Staff;
-use Barryvdh\DomPDF\Facade\Pdf; 
+use App\Models\Staff; // Asegúrate de que este sea el nombre correcto de tu modelo de personal
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Validation\Rule; // Importar la clase Rule para validaciones únicas
 
 class PersonalController extends Controller
 {
@@ -91,16 +92,24 @@ class PersonalController extends Controller
      */
     public function store(Request $request)
     {
+        // Reglas de validación con mensajes personalizados
         $validatedData = $request->validate([
             'nombre' => 'required|string|max:255',
             'tipo_documento' => 'required|string|max:50',
+            // El documento debe ser único en la tabla 'staff', columna 'documento'
             'documento' => 'required|string|unique:staff,documento|max:20',
-            'email' => 'nullable|email|max:255',
+            // El email debe ser requerido, un email válido y único en la tabla 'staff', columna 'email'
+            'email' => 'required|email|unique:staff,email|max:255',
             'telefono' => 'nullable|string|max:20',
             'direccion' => 'nullable|string|max:500',
             'estado' => 'required|string|in:Activo,Inactivo',
             'cargo' => 'required|string',
-            // 'fecha_contratacion' y 'salario' eliminados de la validación
+        ], [
+            'documento.unique' => 'El número de documento ya está registrado para otro personal.',
+            'email.unique' => 'El correo electrónico ya está registrado para otro personal.',
+            'email.required' => 'El campo de correo electrónico es obligatorio.',
+            'email.email' => 'El correo electrónico debe ser una dirección de correo válida.',
+            // Puedes añadir más mensajes personalizados aquí para otras reglas si lo deseas
         ]);
 
         $staff = Staff::create($validatedData);
@@ -138,16 +147,36 @@ class PersonalController extends Controller
      */
     public function update(Request $request, Staff $personal)
     {
+        // Reglas de validación con mensajes personalizados
         $validatedData = $request->validate([
-            'nombre' => 'sometimes|string|max:255',
-            'tipo_documento' => 'sometimes|string|max:50',
-            'documento' => 'sometimes|string|unique:staff,documento,' . $personal->id . '|max:20',
-            'email' => 'nullable|email|max:255',
+            'nombre' => 'sometimes|required|string|max:255',
+            'tipo_documento' => 'sometimes|required|string|max:50',
+            // El documento debe ser único, excepto para el personal actual que se está editando
+            'documento' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:20',
+                Rule::unique('staff', 'documento')->ignore($personal->id),
+            ],
+            // El email debe ser requerido, un email válido y único, excepto para el personal actual
+            'email' => [
+                'sometimes', // 'sometimes' permite que el campo no sea enviado en la petición si no se modifica
+                'required', // 'required' si el campo se envía, debe tener un valor
+                'email',
+                'max:255',
+                Rule::unique('staff', 'email')->ignore($personal->id), // Ignora el ID del personal actual
+            ],
             'telefono' => 'nullable|string|max:20',
             'direccion' => 'nullable|string|max:500',
-            'estado' => 'sometimes|string|in:Activo,Inactivo',
-            'cargo' => 'sometimes|string',
-            // 'fecha_contratacion' y 'salario' eliminados de la validación
+            'estado' => 'sometimes|required|string|in:Activo,Inactivo',
+            'cargo' => 'sometimes|required|string',
+        ], [
+            'documento.unique' => 'El número de documento ya está registrado para otro personal.',
+            'email.unique' => 'El correo electrónico ya está registrado para otro personal.',
+            'email.required' => 'El campo de correo electrónico es obligatorio.',
+            'email.email' => 'El correo electrónico debe ser una dirección de correo válida.',
+            // Puedes añadir más mensajes personalizados aquí
         ]);
 
         $personal->update($validatedData);

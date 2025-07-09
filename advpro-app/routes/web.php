@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\ContabilidadController;
 |
 */
 Auth::routes();
+
 // 1. Ruta raíz para invitados: redirige a /login.
 //    Si ya estás autenticado, el middleware 'guest' te enviará a /home.
 Route::get('/', function () {
@@ -30,8 +31,7 @@ Route::get('/', function () {
 })->middleware('guest')->name('root');
 
 
-
-// 2. Rutas de autenticación (guest)
+// 2. Rutas de autenticación (guest) - Solo accesibles para usuarios no autenticados
 Route::middleware('guest')->group(function () {
     // Login
     Route::get('/login',  [AuthController::class, 'showLogin'])->name('login');
@@ -45,7 +45,7 @@ Route::middleware('guest')->group(function () {
 });
 
 
-// 3. Rutas protegidas (auth)
+// 3. Rutas protegidas (auth) - Solo accesibles para usuarios autenticados
 Route::middleware('auth')->group(function () {
     // Dashboard / Home
     Route::get('/home',           [DashboardController::class, 'index'])->name('home');
@@ -65,16 +65,16 @@ Route::middleware('auth')->group(function () {
 
 
     // Recursos (CRUD completo para cada modelo)
-    // Las rutas 'create' y 'store' para proyectos son generadas por Route::resource
+    // Estas rutas generarán métodos como index, create, store, show, edit, update, destroy.
     Route::resource('clientes',  ClienteController::class);
-    Route::resource('contratos', ContratoController::class); //
-    Route::resource('proyectos', ProyectoController::class); //
+    Route::resource('contratos', ContratoController::class);
+    Route::resource('proyectos', ProyectoController::class);
     Route::resource('personal',  PersonalController::class);
     Route::resource('equipos',   EquipoController::class);
 
 
-});
-//Contabilidad
+
+        //Contabilidad
     //(Se usa prefix para poder manejar mas funciones en el controlador
     //Fuera de los predefinidos, y el manejo de varios modelos.)
     Route::prefix('contabilidad')->group(function () {
@@ -85,14 +85,25 @@ Route::middleware('auth')->group(function () {
     // Ruta para guardar un nuevo asiento contable
     Route::post('asientos', [ContabilidadController::class, 'store'])->name('contabilidad.store');
 
-    // Ruta: Para guardar una nueva cuenta contable
+    // NUEVA RUTA: Para guardar una nueva cuenta contable
     Route::post('cuentas', [ContabilidadController::class, 'storeCuenta'])->name('contabilidad.cuentas.store');
-});
 
-// 4. Ruta pública de bienvenida
+    // 1. Devuelve cuentas padre filtradas por tipo (para el select dinámico)
+    Route::get('cuentas/por-tipo/{tipo}', [ContabilidadController::class, 'getCuentasPorTipo'])->name('contabilidad.cuentas.porTipo');
+    
+    // 2. Devuelve el siguiente código disponible basado en la cuenta padre (o el tipo)
+    Route::get('cuentas/siguiente-codigo', [ContabilidadController::class, 'getSiguienteCodigo'])->name('contabilidad.cuentas.siguienteCodigo');
+
+
+
+        }); // Cierre correcto del grupo 'auth'
+
+
+});
+// 4. Ruta pública de bienvenida (accesible para todos)
 Route::get('/welcome', fn() => view('welcome'))->name('welcome');
 
 
-// 5. Fallback: cualquier otra URI redirige a la raíz (`/`),
+// 5. Fallback: cualquier otra URI desconocida redirige a la raíz (`/`),
 //    que a su vez enviará al invitado al login, o al usuario autenticado al home.
 Route::fallback(fn() => redirect()->route('root'));

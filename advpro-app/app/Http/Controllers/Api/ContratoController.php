@@ -8,41 +8,47 @@ use App\Models\Cliente;
 use App\Models\Proyecto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Barryvdh\DomPDF\Facade\Pdf; // Importar la clase PDF
-use Carbon\Carbon; 
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class ContratoController extends Controller
 {
-    // ... (métodos index, create, store, show, edit, update, destroy existentes)
-
-    /**
-     * Genera un PDF para el contrato especificado.
-     *
-     * @param  \App\Models\Contrato  $contrato
-     * @return \Illuminate\Http\Response
-     */
     public function generarPdf(Contrato $contrato)
     {
-        // Cargar las relaciones necesarias
         $contrato->load(['cliente', 'proyecto']);
-
-        // Pasar los datos a la vista del PDF
         $pdf = PDF::loadView('contratos.contrato_pdf', compact('contrato'));
-
-        // Retornar el PDF para ser visualizado en el navegador
         return $pdf->stream('contrato-'.$contrato->serial.'.pdf');
     }
 
     public function index(Request $request)
     {
-        // Asegurarse de que el serial esté disponible si se requiere para el panel.
         $contratos = Contrato::with(['cliente', 'proyecto'])->paginate(10);
         $clientes = Cliente::all();
         $proyectos = Proyecto::all();
 
+        $proyectosJson = json_encode($proyectos->map(function ($proyecto) {
+            return [
+                'id' => $proyecto->id,
+                'nombre' => $proyecto->nombre,
+                'presupuesto' => (float) $proyecto->presupuesto,
+                'estado' => $proyecto->estado,
+            ];
+        }));
+
+        $clientsJson = json_encode($clientes->map(function ($cliente) {
+            // Se asume que 'Activo' y 'Pendiente' son los estados que impiden un nuevo contrato.
+            $activeContractsCount = $cliente->contratos()->whereIn('estado', ['Activo', 'Pendiente'])->count();
+            return [
+                'id' => $cliente->id,
+                'nombre' => $cliente->nombre,
+                'active_contracts_count' => $activeContractsCount,
+            ];
+        }));
+
         return $request->wantsJson()
             ? response()->json($contratos, 200)
-            : view('contratos.panel', compact('contratos', 'clientes', 'proyectos'));
+            : view('contratos.panel', compact('contratos', 'clientes', 'proyectos', 'proyectosJson', 'clientsJson'));
     }
 
     public function create()
@@ -50,7 +56,26 @@ class ContratoController extends Controller
         $clientes = Cliente::all();
         $proyectos = Proyecto::all();
 
-        return view('contratos.create', compact('clientes', 'proyectos'));
+        $proyectosJson = json_encode($proyectos->map(function ($proyecto) {
+            return [
+                'id' => $proyecto->id,
+                'nombre' => $proyecto->nombre,
+                'presupuesto' => (float) $proyecto->presupuesto,
+                'estado' => $proyecto->estado,
+            ];
+        }));
+
+        $clientsJson = json_encode($clientes->map(function ($cliente) {
+            // Se asume que 'Activo' y 'Pendiente' son los estados que impiden un nuevo contrato.
+            $activeContractsCount = $cliente->contratos()->whereIn('estado', ['Activo', 'Pendiente'])->count();
+            return [
+                'id' => $cliente->id,
+                'nombre' => $cliente->nombre,
+                'active_contracts_count' => $activeContractsCount,
+            ];
+        }));
+
+        return view('contratos.create', compact('clientes', 'proyectos', 'proyectosJson', 'clientsJson'));
     }
 
     public function store(Request $request)
@@ -86,6 +111,26 @@ class ContratoController extends Controller
             'fecha_entrega.after_or_equal' => 'La fecha de entrega no puede ser anterior a la fecha del contrato.',
         ]);
 
+        // INICIO DE VALIDACIÓN CLAVE: Un cliente no puede tener más de 1 contrato en Activo o Pendiente
+        $existingActiveContracts = Contrato::where('id_cliente', $validated['id_cliente'])
+                                           ->whereIn('estado', ['Activo', 'Pendiente']) // <--- CAMBIO AQUÍ
+                                           ->count();
+
+        Log::info('STORE - Cliente ID: ' . $validated['id_cliente']);
+        Log::info('STORE - Contratos Activo/Pendiente encontrados: ' . $existingActiveContracts);
+
+        if ($existingActiveContracts > 0) {
+            return redirect()->back()->withErrors(['id_cliente' => 'El cliente ya tiene un contrato en estado "Activo" o "Pendiente". Solo puede tener uno a la vez.'])->withInput();
+        }
+        // FIN DE VALIDACIÓN CLAVE
+
+        // Validación del estado del proyecto en el servidor (existente)
+        $proyecto = Proyecto::find($validated['id_proyecto']);
+        // Aquí se mantiene la lógica original si los estados de proyecto son 'en espera' o 'en proceso'
+        if ($proyecto && in_array($proyecto->estado, ['en espera', 'en proceso'])) {
+            return redirect()->back()->withErrors(['id_proyecto' => 'No se puede crear un contrato para proyectos en estado "en espera" o "en proceso".'])->withInput();
+        }
+
         if ($request->hasFile('documento')) {
             $validated['documento'] = $request->file('documento')->store('documentos');
         }
@@ -100,7 +145,6 @@ class ContratoController extends Controller
     public function show(Contrato $contrato, Request $request)
     {
         $contrato->load(['cliente', 'proyecto']);
-
         return $request->wantsJson()
             ? response()->json($contrato, 200)
             : view('contratos.show', compact('contrato'));
@@ -111,7 +155,30 @@ class ContratoController extends Controller
         $clientes = Cliente::all();
         $proyectos = Proyecto::all();
 
-        return view('contratos.edit', compact('contrato', 'clientes', 'proyectos'));
+        $proyectosJson = json_encode($proyectos->map(function ($proyecto) {
+            return [
+                'id' => $proyecto->id,
+                'nombre' => $proyecto->nombre,
+                'presupuesto' => (float) $proyecto->presupuesto,
+                'estado' => $proyecto->estado,
+            ];
+        }));
+
+        $clientsJson = json_encode($clientes->map(function ($cliente) use ($contrato) {
+            // Se asume que 'Activo' y 'Pendiente' son los estados que impiden un nuevo contrato.
+            // Excluir el contrato que se está editando.
+            $activeContractsCount = $cliente->contratos()
+                                           ->where('id', '!=', $contrato->id)
+                                           ->whereIn('estado', ['Activo', 'Pendiente']) // <--- CAMBIO AQUÍ
+                                           ->count();
+            return [
+                'id' => $cliente->id,
+                'nombre' => $cliente->nombre,
+                'active_contracts_count' => $activeContractsCount,
+            ];
+        }));
+
+        return view('contratos.edit', compact('contrato', 'clientes', 'proyectos', 'proyectosJson', 'clientsJson'));
     }
 
     public function update(Request $request, Contrato $contrato)
@@ -147,6 +214,28 @@ class ContratoController extends Controller
             'fecha_entrega.after_or_equal' => 'La fecha de entrega no puede ser anterior a la fecha del contrato.',
         ]);
 
+        // INICIO DE VALIDACIÓN CLAVE: Un cliente no puede tener más de 1 contrato en Activo o Pendiente (excluyendo el actual)
+        $existingActiveContracts = Contrato::where('id_cliente', $validated['id_cliente'])
+                                           ->where('id', '!=', $contrato->id)
+                                           ->whereIn('estado', ['Activo', 'Pendiente']) // <--- CAMBIO AQUÍ
+                                           ->count();
+
+        Log::info('UPDATE - Cliente ID: ' . $validated['id_cliente']);
+        Log::info('UPDATE - Contrato ID a excluir: ' . $contrato->id);
+        Log::info('UPDATE - Contratos Activo/Pendiente encontrados: ' . $existingActiveContracts);
+
+        if ($existingActiveContracts > 0) {
+            return redirect()->back()->withErrors(['id_cliente' => 'El cliente ya tiene otro contrato en estado "Activo" o "Pendiente". Solo puede tener uno a la vez.'])->withInput();
+        }
+        // FIN DE VALIDACIÓN CLAVE
+
+        // Validación del estado del proyecto en el servidor (existente)
+        $proyecto = Proyecto::find($validated['id_proyecto']);
+        // Aquí se mantiene la lógica original si los estados de proyecto son 'en espera' o 'en proceso'
+        if ($proyecto && in_array($proyecto->estado, ['en espera', 'en proceso'])) {
+            return redirect()->back()->withErrors(['id_proyecto' => 'No se puede actualizar un contrato para proyectos en estado "en espera" o "en proceso".'])->withInput();
+        }
+
         if ($request->hasFile('documento')) {
             if ($contrato->documento) {
                 Storage::delete($contrato->documento);
@@ -166,9 +255,7 @@ class ContratoController extends Controller
         if ($contrato->documento) {
             Storage::delete($contrato->documento);
         }
-
         $contrato->delete();
-
         return $request->wantsJson()
             ? response()->json(['message' => 'Contrato eliminado'], 204)
             : redirect()->route('contratos.index')->with('success', 'Contrato eliminado correctamente');

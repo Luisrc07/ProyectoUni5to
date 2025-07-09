@@ -1,18 +1,22 @@
 <x-layouts.app>
-    <div class="p-2"> {{-- Reducido el padding para más espacio --}}
-        <div class="max-w-2xl p-4 bg-white rounded-lg shadow-md dark:bg-gray-800 w-full mx-auto"> {{-- Max-width reducido a 2xl y padding a p-4 --}}
-            <div class="mb-4"> {{-- Margen inferior reducido --}}
-                <div class="flex justify-between items-center mb-4"> {{-- Margen inferior reducido --}}
-                    <p class="text-xl font-semibold text-gray-800 dark:text-gray-300">Crear Nuevo Proyecto</p> {{-- Tamaño de texto reducido --}}
-                    <a href="{{ route('proyectos.index') }}" class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"> {{-- Tamaño de texto reducido --}}
+    <div class="p-2"> {{-- Reduced padding for more space --}}
+        <div class="max-w-2xl p-4 bg-white rounded-lg shadow-md dark:bg-gray-800 w-full mx-auto"> {{-- Max-width reduced to 2xl and padding to p-4 --}}
+            <div class="mb-4"> {{-- Reduced bottom margin --}}
+                <div class="flex justify-between items-center mb-4"> {{-- Reduced bottom margin --}}
+                    <p class="text-xl font-semibold text-gray-800 dark:text-gray-300">{{ isset($proyecto) && $proyecto->id ? 'Editar Proyecto' : 'Crear Nuevo Proyecto' }}</p> {{-- Dynamic title --}}
+                    <a href="{{ route('proyectos.index') }}" class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"> {{-- Reduced text size --}}
                         Volver al Panel
                     </a>
                 </div>
 
-                <form action="{{ route('proyectos.store') }}" method="POST" id="create-project-form-page">
+                {{-- Form: dynamic action for create or update --}}
+                <form action="{{ isset($proyecto) && $proyecto->id ? route('proyectos.update', $proyecto->id) : route('proyectos.store') }}" method="POST" id="project-form-page">
                     @csrf
+                    @if(isset($proyecto) && $proyecto->id)
+                        @method('PUT') {{-- PUT method for updates --}}
+                    @endif
 
-                    {{-- Sección de Errores de Validación --}}
+                    {{-- Validation Errors Section --}}
                     @if ($errors->any())
                         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
                             <strong class="font-bold">¡Oops! Hubo algunos problemas con tu entrada:</strong>
@@ -25,7 +29,7 @@
                     @endif
 
                     <div>
-                        {{-- Campos básicos del proyecto --}}
+                        {{-- Basic project fields --}}
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4"> {{-- Gap reducido a 4, margen inferior a 4 --}}
                             <label class="block relative">
                                 <span class="flex items-center mb-1 text-gray-600 text-xs font-medium dark:text-gray-400">Nombre del Proyecto</span> {{-- Tamaño de texto reducido --}}
@@ -75,17 +79,16 @@
                             </label>
                         </div>
 
-                        
-
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4"> {{-- Gap y margen inferior reducidos --}}
                             {{-- Estado --}}
                             <label class="block relative">
                                 <span class="flex items-center mb-1 text-gray-600 text-xs font-medium dark:text-gray-400">Estado</span> {{-- Tamaño de texto reducido --}}
-                                <select name="estado" class="block w-full h-9 px-4 py-2 border {{ $errors->has('estado') ? 'border-red-500' : 'border-gray-300' }} rounded-md focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-select text-sm" required> {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
+                                <select name="estado" id="estado_proyecto" class="block w-full h-9 px-4 py-2 border {{ $errors->has('estado') ? 'border-red-500' : 'border-gray-300' }} rounded-md focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-select text-sm" required onchange="updateAllSelectOptions()"> {{-- Added onchange to update options --}}
                                     <option value="" disabled {{ old('estado', $proyecto->estado ?? '') ? '' : 'selected' }}>Seleccione un estado</option>
                                     <option value="En espera" {{ old('estado', $proyecto->estado ?? '') == 'En espera' ? 'selected' : '' }}>En espera</option>
                                     <option value="En proceso" {{ old('estado', $proyecto->estado ?? '') == 'En proceso' ? 'selected' : '' }}>En proceso</option>
                                     <option value="Realizado" {{ old('estado', $proyecto->estado ?? '') == 'Realizado' ? 'selected' : '' }}>Realizado</option>
+                                    <option value="Finalizado" {{ old('estado', $proyecto->estado ?? '') == 'Finalizado' ? 'selected' : '' }}>Finalizado</option> {{-- Nuevo estado --}}
                                 </select>
                                 @error('estado')
                                     <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
@@ -110,7 +113,7 @@
                             <label class="block relative">
                                 <span class="flex items-center mb-1 text-gray-600 text-xs font-medium dark:text-gray-400">Responsable</span> {{-- Tamaño de texto reducido --}}
                                 <select name="responsable_id"
-                                    class="block w-full h-9 px-4 py-2 border {{ $errors->has('responsable_id') ? 'border-red-500' : 'border-gray-300' }} rounded-md focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-select text-sm"> {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
+                                    class="block w-full h-9 px-4 py-2 border {{ $errors->has('responsable_id') ? 'border-red-500' : 'border-gray-300' }} rounded-md focus:outline-none dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 dark:text-gray-300 dark:focus:shadow-outline-gray form-select text-sm" required> {{-- Altura h-9, px-4, py-2, rounded-md, text-sm --}}
                                     <option value="" disabled {{ old('responsable_id', $proyecto->responsable_id ?? '') ? '' : 'selected' }}>Seleccione un responsable</option>
                                     @foreach ($personal as $person)
                                         <option value="{{ $person->id }}" {{ old('responsable_id', $proyecto->responsable_id ?? '') == $person->id ? 'selected' : '' }}>
@@ -132,9 +135,9 @@
                                 @error('recursos_personal')
                                     <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
                                 @enderror
-                                @error('recursos_personal.*.staff_id')
-                                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
-                                @enderror
+                                @foreach ($errors->get('recursos_personal.*.staff_id') as $message)
+                                    <p class="text-red-500 text-xs italic mt-1">{{ $message[0] }}</p>
+                                @endforeach
                             </div>
                             <button type="button" onclick="addPersonal()"
                                 class="mt-3 px-3 py-1.5 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"> {{-- Padding y tamaño de texto reducidos --}}
@@ -150,12 +153,12 @@
                                 @error('recursos_equipos')
                                     <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
                                 @enderror
-                                @error('recursos_equipos.*.equipo_id')
-                                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
-                                @enderror
-                                @error('recursos_equipos.*.cantidad')
-                                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
-                                @enderror
+                                @foreach ($errors->get('recursos_equipos.*.equipo_id') as $message)
+                                    <p class="text-red-500 text-xs italic mt-1">{{ $message[0] }}</p>
+                                @endforeach
+                                @foreach ($errors->get('recursos_equipos.*.cantidad') as $message)
+                                    <p class="text-red-500 text-xs italic mt-1">{{ $message[0] }}</p>
+                                @endforeach
                             </div>
                             <button type="button" onclick="addEquipo()"
                                 class="mt-3 px-3 py-1.5 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"> {{-- Padding y tamaño de texto reducidos --}}
@@ -181,14 +184,19 @@
     <script>
         const allPersonal = @json($personal);
         const allEquipos = @json($equipos);
-        let personalIndex = 0; // Se inicializará correctamente al cargar los datos existentes
-        let equipoIndex = 0; // Se inicializará correctamente al cargar los datos existentes
+        let personalIndex = 0;
+        let equipoIndex = 0;
+
+        // --- INICIO: Variables que tu controlador Laravel DEBE pasar a esta vista ---
+        // Estas variables son cruciales para la lógica de deshabilitación.
+        // Asegúrate de que tu controlador las defina y las pase a la vista.
+        const assignedPersonalGloballyInProcess = @json($assignedPersonalGloballyInProcess ?? []); // Array de IDs de personal en proyectos 'En proceso'
+        const assignedEquiposGloballyInProcess = @json($assignedEquiposGloballyInProcess ?? []);   // Array de IDs de equipos en proyectos 'En proceso'
+        const currentProjectStatus = @json($proyecto->estado ?? null); // Estado del proyecto actual ('En proceso', 'En espera', etc.)
+        const currentProjectId = @json($proyecto->id ?? null); // ID del proyecto actual (null si es nuevo)
+        // --- FIN: Variables que tu controlador Laravel DEBE pasar a esta vista ---
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Manejo de old() para campos principales (ya se hace en el HTML)
-            // Para los recursos dinámicos, necesitamos cargar tanto los que vienen de $proyecto
-            // como los que vienen de old() en caso de un error de validación.
-
             const initialPersonal = @json($proyecto->personalAsignado ?? []);
             const oldPersonal = @json(old('recursos_personal', []));
             const initialEquipos = @json($proyecto->equiposAsignados ?? []);
@@ -201,12 +209,14 @@
             // Cargar personal de old() que no esté ya cargado (para errores de validación en nuevas adiciones)
             oldPersonal.forEach(p => {
                 // Solo añadir si no tiene un ID de pivot (es decir, es una adición nueva no persistida)
-                // y el staff_id no está vacío
-                if (!p.id && p.staff_id) {
+                // y el staff_id no está vacío, y no es un duplicado de un elemento ya cargado de initialPersonal
+                const isAlreadyInitial = initialPersonal.some(ip => ip.id === p.staff_id); // Check if staff_id is in initialPersonal
+                if (!p.id && p.staff_id && !isAlreadyInitial) {
                     addPersonal(null, p.staff_id);
                 }
             });
-            personalIndex = Math.max(initialPersonal.length, oldPersonal.length); // Ajusta el índice
+            // Ajusta el índice buscando la clase 'resource-row'
+            personalIndex = document.querySelectorAll('#personal-container > div.resource-row').length;
 
             // Cargar equipos existentes (desde $proyecto)
             initialEquipos.forEach(e => {
@@ -214,11 +224,13 @@
             });
             // Cargar equipos de old() que no estén ya cargados
             oldEquipos.forEach(e => {
-                if (!e.id && e.equipo_id && e.cantidad) {
+                const isAlreadyInitial = initialEquipos.some(ie => ie.id === e.equipo_id); // Check if equipo_id is in initialEquipos
+                if (!e.id && e.equipo_id && e.cantidad && !isAlreadyInitial) {
                     addEquipo(null, e.equipo_id, e.cantidad);
                 }
             });
-            equipoIndex = Math.max(initialEquipos.length, oldEquipos.length); // Ajusta el índice
+            // Ajusta el índice buscando la clase 'resource-row'
+            equipoIndex = document.querySelectorAll('#equipos-container > div.resource-row').length;
 
 
             calculatePresupuesto(); // Calcular presupuesto inicial
@@ -241,6 +253,7 @@
         function updateAllSelectOptions() {
             const personalSelects = document.querySelectorAll('#personal-container select[name$="[staff_id]"]');
             const equipoSelects = document.querySelectorAll('#equipos-container select[name$="[equipo_id]"]');
+            const isCurrentProjectInProcess = currentProjectStatus === 'En proceso';
 
             // Actualizar selectores de personal
             personalSelects.forEach(currentSelect => {
@@ -253,16 +266,34 @@
                     const option = document.createElement('option');
                     option.value = p.id;
                     option.textContent = `${p.nombre} — ${p.documento}`;
-                    // Deshabilitar si ya está seleccionado en otro lugar y no es la opción actual
+
+                    let isDisabled = false;
+
+                    // Regla 1: Deshabilitar si ya está seleccionado en otro lugar DENTRO DE ESTE MISMO FORMULARIO
                     if (selectedPersonalIds.has(p.id) && p.id != currentSelectedValue) {
-                        option.disabled = true;
+                        isDisabled = true;
                     }
+
+                    // Regla 2: Deshabilitar si el proyecto actual está 'En proceso'
+                    // Y el personal está asignado a CUALQUIER otro proyecto 'En proceso'
+                    // Y NO es el personal que ya está asignado a ESTE proyecto (para edición)
+                    if (isCurrentProjectInProcess && assignedPersonalGloballyInProcess.includes(p.id)) {
+                        // Verificar si este personal está asignado al proyecto actual (para edición)
+                        const isAssignedToThisProject = initialPersonal.some(ip => ip.id === p.id);
+                        if (!isAssignedToThisProject || (isAssignedToThisProject && p.id != currentSelectedValue)) {
+                            // Si no está asignado a este proyecto, o si está asignado a este proyecto
+                            // pero no es la opción actualmente seleccionada en este dropdown (evita deshabilitar la opción ya elegida)
+                            isDisabled = true;
+                        }
+                    }
+
+                    option.disabled = isDisabled;
                     currentSelect.appendChild(option);
                 });
                 currentSelect.value = currentSelectedValue; // Restaurar el valor
             });
 
-            // Actualizar selectores de equipo
+            // Actualizar selectores de equipo (lógica similar al personal)
             equipoSelects.forEach(currentSelect => {
                 const selectedEquipoIds = getCurrentlySelectedIds('equipos');
                 const currentSelectedValue = currentSelect.value; // Guardar el valor actual
@@ -272,11 +303,29 @@
                 allEquipos.forEach(e => {
                     const option = document.createElement('option');
                     option.value = e.id;
-                    option.textContent = `${e.nombre} (${e.marca})`;
-                    // Deshabilitar si ya está seleccionado en otro lugar y no es la opción actual
+                    option.textContent = `${e.nombre} (${e.marca}) - Stock: ${e.stock}`; // Mostrar stock
+
+                    let isDisabled = false;
+
+                    // Regla 1: Deshabilitar si ya está seleccionado en otro lugar DENTRO DE ESTE MISMO FORMULARIO
                     if (selectedEquipoIds.has(e.id) && e.id != currentSelectedValue) {
-                        option.disabled = true;
+                        isDisabled = true;
                     }
+
+                    // Regla 2: Deshabilitar si el proyecto actual está 'En proceso'
+                    // Y el equipo está asignado a CUALQUIER otro proyecto 'En proceso'
+                    // Y NO es el equipo que ya está asignado a ESTE proyecto (para edición)
+                    if (isCurrentProjectInProcess && assignedEquiposGloballyInProcess.includes(e.id)) {
+                         // Verificar si este equipo está asignado al proyecto actual (para edición)
+                        const isAssignedToThisProject = initialEquipos.some(ie => ie.id === e.id);
+                        if (!isAssignedToThisProject || (isAssignedToThisProject && e.id != currentSelectedValue)) {
+                            // Si no está asignado a este proyecto, o si está asignado a este proyecto
+                            // pero no es la opción actualmente seleccionada en este dropdown
+                            isDisabled = true;
+                        }
+                    }
+
+                    option.disabled = isDisabled;
                     currentSelect.appendChild(option);
                 });
                 currentSelect.value = currentSelectedValue; // Restaurar el valor
@@ -286,22 +335,23 @@
         function addPersonal(id = null, staff_id = '') {
             const container = document.getElementById('personal-container');
             const newDiv = document.createElement('div');
-            newDiv.className = 'flex flex-wrap items-end gap-3 mb-3 p-2 border border-gray-200 dark:border-gray-700 rounded-md relative'; // Gap, padding y margen reducidos
+            // Añadimos la clase 'resource-row' para una selección más precisa al eliminar
+            newDiv.className = 'flex items-center gap-3 mb-3 p-2 border border-gray-200 dark:border-gray-700 rounded-md resource-row';
             newDiv.dataset.index = personalIndex;
 
             newDiv.innerHTML = `
                 <input type="hidden" name="recursos_personal[${personalIndex}][id]" value="${id || ''}">
-                <div class="w-full">
-                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Personal:</label> {{-- Tamaño de texto reducido --}}
+                <div class="flex-grow"> {{-- Este div toma el espacio disponible, empujando la 'x' a la derecha --}}
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Personal:</label>
                     <select name="recursos_personal[${personalIndex}][staff_id]" onchange="calculatePresupuesto(); updateAllSelectOptions();"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" required> {{-- Tamaño de texto reducido --}}
-                        <option value="" disabled ${staff_id ? '' : 'selected'}>Seleccione personal</option>
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" required>
+                        <option value="" disabled selected>Seleccione personal</option>
                         ${allPersonal.map(p => `<option value="${p.id}" ${p.id == staff_id ? 'selected' : ''}>${p.nombre} — ${p.documento}</option>`).join('')}
                     </select>
                 </div>
                 <button type="button" onclick="removePersonal(this)"
-                    class="absolute top-1 right-1 text-red-500 hover:text-red-700 focus:outline-none"> {{-- Posición ajustada --}}
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> {{-- Tamaño del icono reducido --}}
+                    class="flex-shrink-0 px-2 py-1 text-red-600 hover:text-red-800 focus:outline-none flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900 text-lg font-bold leading-none">
+                    x
                 </button>
             `;
             container.appendChild(newDiv);
@@ -311,7 +361,8 @@
         }
 
         function removePersonal(button) {
-            button.closest('.flex.flex-wrap').remove();
+            // 'closest('.resource-row')' encuentra el div padre con la clase 'resource-row' (que es toda la fila) y lo elimina.
+            button.closest('.resource-row').remove();
             calculatePresupuesto();
             updateAllSelectOptions(); // Actualizar opciones después de eliminar
         }
@@ -319,27 +370,30 @@
         function addEquipo(id = null, equipo_id = '', cantidad = 1) {
             const container = document.getElementById('equipos-container');
             const newDiv = document.createElement('div');
-            newDiv.className = 'flex flex-wrap items-end gap-3 mb-3 p-2 border border-gray-200 dark:border-gray-700 rounded-md relative'; // Gap, padding y margen reducidos
+            // Añadimos la clase 'resource-row' para una selección más precisa al eliminar
+            newDiv.className = 'flex items-center gap-3 mb-3 p-2 border border-gray-200 dark:border-gray-700 rounded-md resource-row';
             newDiv.dataset.index = equipoIndex;
 
             newDiv.innerHTML = `
                 <input type="hidden" name="recursos_equipos[${equipoIndex}][id]" value="${id || ''}">
-                <div class="w-full md:w-1/2 lg:w-1/3">
-                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Equipo:</label> {{-- Tamaño de texto reducido --}}
-                    <select name="recursos_equipos[${equipoIndex}][equipo_id]" onchange="calculatePresupuesto(); updateAllSelectOptions();"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" required> {{-- Tamaño de texto reducido --}}
-                        <option value="" disabled ${equipo_id ? '' : 'selected'}>Seleccione equipo</option>
-                        ${allEquipos.map(e => `<option value="${e.id}" ${e.id == equipo_id ? 'selected' : ''}>${e.nombre} (${e.marca})</option>`).join('')}
-                    </select>
-                </div>
-                <div class="w-full md:w-1/2 lg:w-1/3">
-                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Cantidad:</label> {{-- Tamaño de texto reducido --}}
-                    <input type="number" name="recursos_equipos[${equipoIndex}][cantidad]" value="${cantidad}" oninput="calculatePresupuesto()"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" min="1" required> {{-- Tamaño de texto reducido --}}
+                <div class="flex-grow grid grid-cols-1 md:grid-cols-2 gap-3"> {{-- Este div toma el espacio disponible y organiza sus inputs en una grilla --}}
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Equipo:</label>
+                        <select name="recursos_equipos[${equipoIndex}][equipo_id]" onchange="calculatePresupuesto(); updateAllSelectOptions();"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" required>
+                            <option value="" disabled selected>Seleccione equipo</option>
+                            ${allEquipos.map(e => `<option value="${e.id}" ${e.id == equipo_id ? 'selected' : ''}>${e.nombre} (${e.marca}) - Stock: ${e.stock}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Cantidad:</label>
+                        <input type="number" name="recursos_equipos[${equipoIndex}][cantidad]" value="${cantidad}" oninput="calculatePresupuesto()"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" min="1" required>
+                    </div>
                 </div>
                 <button type="button" onclick="removeEquipo(this)"
-                    class="absolute top-1 right-1 text-red-500 hover:text-red-700 focus:outline-none"> {{-- Posición ajustada --}}
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> {{-- Tamaño del icono reducido --}}
+                    class="flex-shrink-0 px-2 py-1 text-red-600 hover:text-red-800 focus:outline-none flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900 text-lg font-bold leading-none">
+                    x
                 </button>
             `;
             container.appendChild(newDiv);
@@ -349,7 +403,8 @@
         }
 
         function removeEquipo(button) {
-            button.closest('.flex.flex-wrap').remove();
+            // 'closest('.resource-row')' encuentra el div padre con la clase 'resource-row' (que es toda la fila) y lo elimina.
+            button.closest('.resource-row').remove();
             calculatePresupuesto();
             updateAllSelectOptions(); // Actualizar opciones después de eliminar
         }
@@ -357,9 +412,12 @@
         function calculatePresupuesto() {
             // Define rates for easier modification (all in USD)
             const BASE_PROJECT_FEE = 150; // Base fee for any project
-            const DAILY_PROJECT_OVERHEAD = 50; // Cost per day for general project management/overhead
-            const DAILY_PERSONAL_RATE = 150; // Cost per assigned person per day (increased)
-            const EQUIPMENT_VALUE_PERCENTAGE = 0.30; // 30% of total equipment value for project usage (increased)
+            const PER_MINUTE_OVERHEAD_RATE = 5; // Cost per minute for general project overhead (Increased to $5)
+            const DAILY_PERSONAL_RATE = 150; // Cost per assigned person per day
+            const EQUIPMENT_VALUE_PERCENTAGE = 0.30; // 30% of total equipment value for project usage
+
+            // Max duration: 10 hours in minutes
+            const MAX_DURATION_MINUTES = 10 * 60; // 600 minutes
 
             let totalPresupuesto = 0;
             const duracionEstimadaMinutosInput = document.getElementById('duracion_estimada_minutos');
@@ -376,19 +434,24 @@
                 return;
             }
 
-            // Convert minutes to hours and days for calculations
+            // New validation: Max duration 10 hours (600 minutes)
+            if (projectDurationMinutes > MAX_DURATION_MINUTES) {
+                duracionError.textContent = `La duración no puede ser mayor a ${MAX_DURATION_MINUTES} minutos (10 horas).`;
+                presupuestoInput.value = (0).toFixed(2);
+                return;
+            }
+
+            // Convert minutes to hours and days for calculations (still needed for personal rate)
             const projectDurationHours = projectDurationMinutes / 60;
             const projectDurationDays = projectDurationHours / 24; // Assuming 24 hours per day for simplicity in daily rates
 
             // 1. Add Base Project Fee
             totalPresupuesto += BASE_PROJECT_FEE;
 
-            // 2. Add Project Duration Overhead Cost
-            if (projectDurationDays > 0) {
-                totalPresupuesto += projectDurationDays * DAILY_PROJECT_OVERHEAD;
-            }
+            // 2. Add Project Duration Overhead Cost (now per minute)
+            totalPresupuesto += projectDurationMinutes * PER_MINUTE_OVERHEAD_RATE;
 
-            // 3. Add Cost for Assigned Personal
+            // 3. Add Cost for Assigned Personal (still per day)
             const assignedPersonalElements = document.querySelectorAll('#personal-container select[name$="[staff_id]"]');
             assignedPersonalElements.forEach(selectElement => {
                 // We only add cost if a person is selected and duration is valid

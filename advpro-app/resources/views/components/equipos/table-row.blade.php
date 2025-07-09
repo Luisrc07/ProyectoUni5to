@@ -52,5 +52,5 @@
                 </button>
             </form>
         </div>
-    </td>
+    </td>
 </tr>

@@ -48,6 +48,10 @@ class Contrato extends Model
             $contrato->serial = self::generateUniqueSerial();
         });
     }
+    public function proyectos()
+    {
+        return $this->hasMany(Proyecto::class, 'id_cliente');
+    }
 
     public function cliente()
     {

@@ -17,8 +17,17 @@
         {{-- CORREGIDO: Verificar si la fecha existe antes de formatear --}}
         {{ $item->fecha_entrega ? $item->fecha_entrega->format('d/m/Y') : 'No asignada' }}
     </td>
+    {{-- Nuevas columnas de fecha de proyecto --}}
     <td class="px-4 py-3 text-sm">
-        {{ number_format($item->costo, 2) }}
+        {{ $item->fecha_inicio_proyecto?->format('d/m/Y') ?? 'N/A' }}
+    </td>
+    <td class="px-4 py-3 text-sm">
+        {{ $item->fecha_fin_proyecto?->format('d/m/Y') ?? 'N/A' }}
+    </td>
+    {{-- Fin de nuevas columnas --}}
+    <td class="px-4 py-3 text-sm">
+        {{-- Ahora el campo 'costo' del contrato ya es el costo final --}}
+        {{ number_format($item->costo, 2, ',', '.') }}
     </td>
     <td class="px-4 py-3 text-sm">
         <span class="inline-block px-2 py-1 font-semibold leading-tight rounded-full
@@ -54,7 +63,7 @@
                 <button type="submit" class="flex items-center justify-between px-2 py-2 text-sm font-medium leading-5 text-purple-600 rounded-lg dark:text-gray-400 focus:outline-none focus:shadow-outline-gray" aria-label="Delete">
                     <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                    </svg>
+                </svg>
                 </button>
             </form>
         </div>
