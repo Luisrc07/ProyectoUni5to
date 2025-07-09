@@ -16,9 +16,10 @@ return new class extends Migration
             $table->unsignedBigInteger('id_cliente')->nullable();
             $table->unsignedBigInteger('id_proyecto')->nullable();
             $table->date('fecha_contrato');
+            $table->date('fecha_entrega');
             $table->decimal('costo');
             $table->string('estado');
-            $table->string('serial', 5)->unique(); // Eliminado ->after('estado')
+            $table->string('serial', 5)->unique(); 
             $table->timestamps();
             $table->date('fecha_inicio_proyecto')->nullable();
             $table->date('fecha_fin_proyecto')->nullable();

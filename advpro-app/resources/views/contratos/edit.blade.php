@@ -10,13 +10,15 @@
         @csrf
         @method('PUT')
 
+        {{-- Serial del Contrato (sin cambios) --}}
         <label class="block mt-2 text-sm">
             <span class="text-gray-700 dark:text-gray-400">Serial del Contrato</span>
             <input type="text" value="{{ $contrato->serial }}" readonly
-                class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input cursor-not-allowed"
+                class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 form-input cursor-not-allowed"
             />
         </label>
 
+        {{-- Cliente y Proyecto (sin cambios) --}}
         <label class="block mt-2 text-sm">
           <span class="text-gray-700 dark:text-gray-400">Cliente</span>
           <select id="client-select-edit" name="id_cliente" class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray">
@@ -44,27 +46,31 @@
 
         <label class="block mt-2 text-sm">
           <span class="text-gray-700 dark:text-gray-400">Fecha del Contrato</span>
-          <input type="date" name="fecha_contrato"
+          <input type="date" name="fecha_contrato" id="fecha-inicio-proyecto-edit"
             class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
-            value="{{ old('fecha_contrato', $contrato->fecha_contrato?->format('Y-m-d')) }}"
+            value="{{ old('fecha_contrato', $contrato->fecha_contrato ? $contrato->fecha_contrato->format('Y-m-d') : '') }}"
           />
+          @error('fecha_contrato')
+              <span class="text-xs text-red-600 dark:text-red-400">{{ $message }}</span>
+          @enderror
         </label>
 
+        {{-- CORREGIDO: Fecha de Entrega --}}
         <label class="block mt-2 text-sm">
-            <span class="text-gray-700 dark:text-gray-400">Fecha de Inicio del Proyecto</span>
-            <input type="date" id="fecha-inicio-proyecto-edit" name="fecha_inicio_proyecto"
-                class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
-                value="{{ old('fecha_inicio_proyecto', $contrato->fecha_inicio_proyecto?->format('Y-m-d')) }}"
-            />
+          <span class="text-gray-700 dark:text-gray-400">Fecha de Entrega</span>
+          <input type="date" name="fecha_entrega" id="fecha-fin-proyecto-edit"
+            class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
+            value="{{ old('fecha_entrega', $contrato->fecha_entrega ? $contrato->fecha_entrega->format('Y-m-d') : '') }}"
+          />
+          @error('fecha_entrega')
+              <span class="text-xs text-red-600 dark:text-red-400">{{ $message }}</span>
+          @enderror
         </label>
 
-        <label class="block mt-2 text-sm">
-            <span class="text-gray-700 dark:text-gray-400">Fecha de Fin del Proyecto</span>
-            <input type="date" id="fecha-fin-proyecto-edit" name="fecha_fin_proyecto"
-                class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
-                value="{{ old('fecha_fin_proyecto', $contrato->fecha_fin_proyecto?->format('Y-m-d')) }}"
-            />
-        </label>
+        {{-- Costo y Estado (sin cambios) --}}
+      
+
+        
 
         {{-- Campo de Costo Base (solo lectura) --}}
         <label class="block mt-2 text-sm">
@@ -96,6 +102,7 @@
           </select>
         </label>
 
+        {{-- Botones (sin cambios) --}}
         <div class="flex items-center justify-end mt-6 space-x-4">
           <a href="{{ route('contratos.index') }}" class="px-4 py-2 text-sm font-medium text-gray-700 transition-colors duration-150 border border-gray-300 rounded-lg dark:text-gray-400 hover:border-gray-500 focus:border-gray-500 focus:outline-none focus:shadow-outline-gray">
             Volver
