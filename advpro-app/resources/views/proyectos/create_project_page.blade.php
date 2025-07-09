@@ -215,7 +215,8 @@
                     addPersonal(null, p.staff_id);
                 }
             });
-            personalIndex = document.querySelectorAll('#personal-container > div').length; // Ajusta el índice
+            // Ajusta el índice buscando la clase 'resource-row'
+            personalIndex = document.querySelectorAll('#personal-container > div.resource-row').length;
 
             // Cargar equipos existentes (desde $proyecto)
             initialEquipos.forEach(e => {
@@ -228,7 +229,8 @@
                     addEquipo(null, e.equipo_id, e.cantidad);
                 }
             });
-            equipoIndex = document.querySelectorAll('#equipos-container > div').length; // Ajusta el índice
+            // Ajusta el índice buscando la clase 'resource-row'
+            equipoIndex = document.querySelectorAll('#equipos-container > div.resource-row').length;
 
 
             calculatePresupuesto(); // Calcular presupuesto inicial
@@ -333,22 +335,23 @@
         function addPersonal(id = null, staff_id = '') {
             const container = document.getElementById('personal-container');
             const newDiv = document.createElement('div');
-            newDiv.className = 'flex flex-wrap items-end gap-3 mb-3 p-2 border border-gray-200 dark:border-gray-700 rounded-md relative'; // Gap, padding y margen reducidos
+            // Añadimos la clase 'resource-row' para una selección más precisa al eliminar
+            newDiv.className = 'flex items-center gap-3 mb-3 p-2 border border-gray-200 dark:border-gray-700 rounded-md resource-row';
             newDiv.dataset.index = personalIndex;
 
             newDiv.innerHTML = `
                 <input type="hidden" name="recursos_personal[${personalIndex}][id]" value="${id || ''}">
-                <div class="w-full">
-                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Personal:</label> {{-- Tamaño de texto reducido --}}
+                <div class="flex-grow"> {{-- Este div toma el espacio disponible, empujando la 'x' a la derecha --}}
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Personal:</label>
                     <select name="recursos_personal[${personalIndex}][staff_id]" onchange="calculatePresupuesto(); updateAllSelectOptions();"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" required> {{-- Tamaño de texto reducido --}}
-                        <option value="" disabled ${staff_id ? '' : 'selected'}>Seleccione personal</option>
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" required>
+                        <option value="" disabled selected>Seleccione personal</option>
                         ${allPersonal.map(p => `<option value="${p.id}" ${p.id == staff_id ? 'selected' : ''}>${p.nombre} — ${p.documento}</option>`).join('')}
                     </select>
                 </div>
                 <button type="button" onclick="removePersonal(this)"
-                    class="absolute top-1 right-1 text-red-500 hover:text-red-700 focus:outline-none"> {{-- Posición ajustada --}}
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> {{-- Tamaño del icono reducido --}}
+                    class="flex-shrink-0 px-2 py-1 text-red-600 hover:text-red-800 focus:outline-none flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900 text-lg font-bold leading-none">
+                    x
                 </button>
             `;
             container.appendChild(newDiv);
@@ -358,7 +361,8 @@
         }
 
         function removePersonal(button) {
-            button.closest('.flex.flex-wrap').remove();
+            // 'closest('.resource-row')' encuentra el div padre con la clase 'resource-row' (que es toda la fila) y lo elimina.
+            button.closest('.resource-row').remove();
             calculatePresupuesto();
             updateAllSelectOptions(); // Actualizar opciones después de eliminar
         }
@@ -366,27 +370,30 @@
         function addEquipo(id = null, equipo_id = '', cantidad = 1) {
             const container = document.getElementById('equipos-container');
             const newDiv = document.createElement('div');
-            newDiv.className = 'flex flex-wrap items-end gap-3 mb-3 p-2 border border-gray-200 dark:border-gray-700 rounded-md relative'; // Gap, padding y margen reducidos
+            // Añadimos la clase 'resource-row' para una selección más precisa al eliminar
+            newDiv.className = 'flex items-center gap-3 mb-3 p-2 border border-gray-200 dark:border-gray-700 rounded-md resource-row';
             newDiv.dataset.index = equipoIndex;
 
             newDiv.innerHTML = `
                 <input type="hidden" name="recursos_equipos[${equipoIndex}][id]" value="${id || ''}">
-                <div class="w-full md:w-1/2 lg:w-1/3">
-                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Equipo:</label> {{-- Tamaño de texto reducido --}}
-                    <select name="recursos_equipos[${equipoIndex}][equipo_id]" onchange="calculatePresupuesto(); updateAllSelectOptions();"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" required> {{-- Tamaño de texto reducido --}}
-                        <option value="" disabled selected>Seleccione equipo</option>
-                        ${allEquipos.map(e => `<option value="${e.id}" ${e.id == equipo_id ? 'selected' : ''}>${e.nombre} (${e.marca}) - Stock: ${e.stock}</option>`).join('')}
-                    </select>
-                </div>
-                <div class="w-full md:w-1/2 lg:w-1/3">
-                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Cantidad:</label> {{-- Tamaño de texto reducido --}}
-                    <input type="number" name="recursos_equipos[${equipoIndex}][cantidad]" value="${cantidad}" oninput="calculatePresupuesto()"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" min="1" required> {{-- Tamaño de texto reducido --}}
+                <div class="flex-grow grid grid-cols-1 md:grid-cols-2 gap-3"> {{-- Este div toma el espacio disponible y organiza sus inputs en una grilla --}}
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Equipo:</label>
+                        <select name="recursos_equipos[${equipoIndex}][equipo_id]" onchange="calculatePresupuesto(); updateAllSelectOptions();"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" required>
+                            <option value="" disabled selected>Seleccione equipo</option>
+                            ${allEquipos.map(e => `<option value="${e.id}" ${e.id == equipo_id ? 'selected' : ''}>${e.nombre} (${e.marca}) - Stock: ${e.stock}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Cantidad:</label>
+                        <input type="number" name="recursos_equipos[${equipoIndex}][cantidad]" value="${cantidad}" oninput="calculatePresupuesto()"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" min="1" required>
+                    </div>
                 </div>
                 <button type="button" onclick="removeEquipo(this)"
-                    class="absolute top-1 right-1 text-red-500 hover:text-red-700 focus:outline-none"> {{-- Posición ajustada --}}
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> {{-- Tamaño del icono reducido --}}
+                    class="flex-shrink-0 px-2 py-1 text-red-600 hover:text-red-800 focus:outline-none flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900 text-lg font-bold leading-none">
+                    x
                 </button>
             `;
             container.appendChild(newDiv);
@@ -396,7 +403,8 @@
         }
 
         function removeEquipo(button) {
-            button.closest('.flex.flex-wrap').remove();
+            // 'closest('.resource-row')' encuentra el div padre con la clase 'resource-row' (que es toda la fila) y lo elimina.
+            button.closest('.resource-row').remove();
             calculatePresupuesto();
             updateAllSelectOptions(); // Actualizar opciones después de eliminar
         }
@@ -404,7 +412,7 @@
         function calculatePresupuesto() {
             // Define rates for easier modification (all in USD)
             const BASE_PROJECT_FEE = 150; // Base fee for any project
-            const PER_MINUTE_OVERHEAD_RATE = 1; // Cost per minute for general project overhead (increased significantly)
+            const PER_MINUTE_OVERHEAD_RATE = 5; // Cost per minute for general project overhead (Increased to $5)
             const DAILY_PERSONAL_RATE = 150; // Cost per assigned person per day
             const EQUIPMENT_VALUE_PERCENTAGE = 0.30; // 30% of total equipment value for project usage
 
