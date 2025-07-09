@@ -27,7 +27,7 @@
     <label class="block mt-2 text-sm">
         <span class="text-gray-700 dark:text-gray-400">Fecha del Contrato</span>
         {{-- ASEGÚRATE DE QUE ESTA LÍNEA SOLO USE old() --}}
-        <input type="date" name="fecha_contrato"
+        <input type="date" name="fecha_contrato" id="fecha-inicio-proyecto-create"
             class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
             value="{{ old('fecha_contrato') }}"
         />
@@ -39,7 +39,7 @@
     <label class="block mt-2 text-sm">
         <span class="text-gray-700 dark:text-gray-400">Fecha de Entrega</span>
         {{-- ASEGÚRATE DE QUE ESTA LÍNEA SOLO USE old() --}}
-        <input type="date" name="fecha_entrega"
+        <input type="date" name="fecha_entrega" id="fecha-fin-proyecto-create"
             class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
             value="{{ old('fecha_entrega') }}"
         />
@@ -48,19 +48,6 @@
         @enderror
     </label>
 
-    <label class="block mt-2 text-sm">
-        <span class="text-gray-700 dark:text-gray-400">Fecha de Inicio del Proyecto</span>
-        <input type="date" id="fecha-inicio-proyecto-create" name="fecha_inicio_proyecto"
-            class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
-        />
-    </label>
-
-    <label class="block mt-2 text-sm">
-        <span class="text-gray-700 dark:text-gray-400">Fecha de Fin del Proyecto</span>
-        <input type="date" id="fecha-fin-proyecto-create" name="fecha_fin_proyecto"
-            class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
-        />
-    </label>
 
     {{-- Campo de Costo Base (solo lectura) --}}
     <label class="block mt-2 text-sm">

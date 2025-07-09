@@ -17,14 +17,7 @@
         {{-- CORREGIDO: Verificar si la fecha existe antes de formatear --}}
         {{ $item->fecha_entrega ? $item->fecha_entrega->format('d/m/Y') : 'No asignada' }}
     </td>
-    {{-- Nuevas columnas de fecha de proyecto --}}
-    <td class="px-4 py-3 text-sm">
-        {{ $item->fecha_inicio_proyecto?->format('d/m/Y') ?? 'N/A' }}
-    </td>
-    <td class="px-4 py-3 text-sm">
-        {{ $item->fecha_fin_proyecto?->format('d/m/Y') ?? 'N/A' }}
-    </td>
-    {{-- Fin de nuevas columnas --}}
+   
     <td class="px-4 py-3 text-sm">
         {{-- Ahora el campo 'costo' del contrato ya es el costo final --}}
         {{ number_format($item->costo, 2, ',', '.') }}
