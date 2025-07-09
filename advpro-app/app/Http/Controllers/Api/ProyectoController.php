@@ -83,8 +83,7 @@ class ProyectoController extends Controller
         // Aplicar filtros
         $query = $this->applyFilters($query, $request);
 
-        // Paginación
-        $proyectos = $query->paginate(7)->withQueryString();
+        $proyectos = $query->paginate(5)->withQueryString();
 
         // Guardar los valores de los filtros actuales para que el formulario los recuerde
         $filter_values = $request->query();
