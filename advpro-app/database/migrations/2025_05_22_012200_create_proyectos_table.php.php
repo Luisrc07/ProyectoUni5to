@@ -13,20 +13,25 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('proyectos', function (Blueprint $table) {
-            $table->id(); // Crea una columna 'id' auto-incrementable y clave primaria
-            $table->string('nombre');
-            $table->text('descripcion'); // Cambiado a 'text' para descripciones más largas
-            $table->integer('duracion_estimada_minutos'); // Añadido para coincidir con el formulario y el modelo
-            $table->decimal('presupuesto', 10, 2); // 'decimal' es ideal para valores monetarios
-            $table->string('estado');
-            $table->string('lugar')->nullable(); // 'lugar' es opcional en el formulario
-          
+            $table->id(); // Crea la columna 'id' automáticamente autoincremental y como clave primaria
+            $table->string('nombre', 100); // Limita la longitud para mantener orden
+            $table->text('descripcion'); // Ideal para contenido extenso
+            $table->integer('duracion_estimada_minutos');
+            $table->decimal('presupuesto', 10, 2);
+            $table->string('estado', 50); // Campo de estado limitado a 50 caracteres
+            $table->string('lugar', 100)->nullable(); // Lugar opcional
 
-            // Columna y clave foránea para el responsable del proyecto (staff)
-            // Si el staff es eliminado, el responsable_id en proyectos se establecerá a null
-            $table->foreignId('responsable_id')->nullable()->constrained('staff')->onDelete('set null');
+            // Clave foránea hacia la tabla 'staff', como responsable del proyecto
+            // Si el staff se elimina, se establece a null
+            $table->foreignId('responsable_id')
+                ->nullable()
+                ->constrained('staff')
+                ->onDelete('set null');
 
-            $table->timestamps(); // Añade las columnas 'created_at' y 'updated_at'
+            // Opcional: Clave foránea hacia la tabla 'clientes' si quieres vincular proyectos con clientes
+            // $table->foreignId('id_cliente')->constrained('clientes')->onDelete('cascade');
+
+            $table->timestamps(); // Añade 'created_at' y 'updated_at'
         });
     }
 
@@ -39,4 +44,3 @@ return new class extends Migration
         Schema::dropIfExists('proyectos');
     }
 };
-
