@@ -27,7 +27,7 @@ class EquipoController extends Controller
         }
 
         if ($request->filled('responsable')) {
-            $query->where('responsable', $request->responsable);
+            $query->where('responsable_id', $request->responsable);
         }
 
         if ($request->filled('fecha_creacion')) {
@@ -71,7 +71,7 @@ class EquipoController extends Controller
         }
 
         if ($request->filled('responsable')) {
-            $query->where('responsable', $request->responsable);
+            $query->where('responsable_id', $request->responsable);
         }
 
         if ($request->filled('fecha_creacion')) {
@@ -93,8 +93,10 @@ class EquipoController extends Controller
         $equipos_para_reporte = $query->get();
 
         $pdf = Pdf::loadView('equipos.reporte_pdf', compact('equipos_para_reporte'));
+                
+        // Cambiado de download() a stream() para mostrar el PDF en el navegador
 
-        return $pdf->download('reporte_equipos_' . date('Y-m-d') . '.pdf');
+        return $pdf->stream('reporte_equipos_' . date('Y-m-d') . '.pdf');
     }
 
     /**
