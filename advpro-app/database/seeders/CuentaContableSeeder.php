@@ -126,9 +126,10 @@ class CuentaContableSeeder extends Seeder
                 $insertAccount('5105', 'Depreciación de Activos (Administrativos)', 'egreso', true, '5100');
                 $insertAccount('5106', 'Gastos de Mantenimiento (Oficina y Equipo General)', 'egreso', true, '5100');
                 $insertAccount('5107', 'Gastos Legales y Contables', 'egreso', true, '5100');
-            $insertAccount('5200', 'Gastos de Venta', 'egreso', false, '5000');
+            $insertAccount('5200', 'Gastos de Venta de servicios', 'egreso', false, '5000');
                 $insertAccount('5201', 'Gastos de Publicidad y Marketing', 'egreso', true, '5200');
-                $insertAccount('5202', 'Comisiones sobre Ventas', 'egreso', true, '5200');
+                $insertAccount('5202', 'Comisiones sobre Servicios', 'egreso', true, '5200');
+                $insertAccount('5203', 'Gastos de Equipo de Rodaje', 'egreso', true, '5200');
             $insertAccount('5300', 'Gastos Financieros', 'egreso', true, '5000');
                 $insertAccount('5301', 'Intereses Pagados', 'egreso', true, '5300');
 

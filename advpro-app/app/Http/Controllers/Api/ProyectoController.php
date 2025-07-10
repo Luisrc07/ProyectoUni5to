@@ -12,7 +12,6 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\StoreProyectoRequest;
 use App\Http\Requests\UpdateProyectoRequest;
-use Log;
 
 class ProyectoController extends Controller
 {
@@ -109,7 +108,31 @@ class ProyectoController extends Controller
         $equipos = Equipo::all();
         // Se pasa un proyecto nulo para que el formulario de creación sepa que no está en modo edición
         $proyecto = null;
-        return view('proyectos.create_project_page', compact('personal', 'equipos', 'proyecto'));
+
+        // Lógica para obtener personal/equipos asignados globalmente en proyectos 'En proceso'
+        $assignedPersonalGloballyInProcess = ProyectoRecurso::where('asignable_type', Staff::class)
+            ->whereHas('proyecto', function ($query) {
+                $query->where('estado', 'En proceso');
+            })
+            ->distinct('asignable_id')
+            ->pluck('asignable_id')
+            ->toArray();
+
+        $assignedEquiposGloballyInProcess = ProyectoRecurso::where('asignable_type', Equipo::class)
+            ->whereHas('proyecto', function ($query) {
+                $query->where('estado', 'En proceso');
+            })
+            ->distinct('asignable_id')
+            ->pluck('asignable_id')
+            ->toArray();
+
+        return view('proyectos.create_project_page', compact(
+            'personal',
+            'equipos',
+            'proyecto',
+            'assignedPersonalGloballyInProcess',
+            'assignedEquiposGloballyInProcess'
+        ));
     }
 
     /**
@@ -149,7 +172,7 @@ class ProyectoController extends Controller
             // y añadirá las nuevas.
             $proyecto->personalAsignado()->sync($requestedStaffIds);
 
-            // --- Lógica para equipos asignados y actualización de stock ---
+            // --- Lógica para equipos asignados y actualización de cantidad disponible ---
             $equiposRecursos = $validatedData['recursos_equipos'] ?? [];
             $syncEquipoData = [];
 
@@ -159,10 +182,11 @@ class ProyectoController extends Controller
                     $cantidad = $equipoData['cantidad'];
                     $syncEquipoData[$equipoId] = ['cantidad' => $cantidad];
 
-                    // Decrementar el stock del equipo (solo para nuevas asignaciones en 'store')
+                    // Decrementar la cantidad disponible del equipo (solo para nuevas asignaciones en 'store')
                     $equipo = Equipo::find($equipoId);
                     if ($equipo) {
-                        $equipo->decrement('stock', $cantidad);
+                        // FIX: Cambiado de decrement('stock', ...) a decrement('cantidad', ...)
+                        $equipo->decrement('cantidad', $cantidad);
                     }
                 }
             }
@@ -232,9 +256,41 @@ class ProyectoController extends Controller
         // Cargar las relaciones de recursos para prellenar el formulario
         $proyecto->load(['personalAsignado', 'equiposAsignados']);
 
+        // Lógica para obtener personal/equipos asignados globalmente en proyectos 'En proceso'
+        // ¡EXCLUYENDO las asignaciones del PROYECTO ACTUAL!
+        $assignedPersonalGloballyInProcess = ProyectoRecurso::where('asignable_type', Staff::class)
+            ->where('proyecto_id', '!=', $proyecto->id) // Excluir las asignaciones del proyecto actual
+            ->whereHas('proyecto', function ($query) {
+                $query->where('estado', 'En proceso');
+            })
+            ->distinct('asignable_id')
+            ->pluck('asignable_id')
+            ->toArray();
+
+        $assignedEquiposGloballyInProcess = ProyectoRecurso::where('asignable_type', Equipo::class)
+            ->where('proyecto_id', '!=', $proyecto->id) // Excluir las asignaciones del proyecto actual
+            ->whereHas('proyecto', function ($query) {
+                $query->where('estado', 'En proceso');
+            })
+            ->distinct('asignable_id')
+            ->pluck('asignable_id')
+            ->toArray();
+
+        // También puedes pasar el estado y el ID del proyecto actual explícitamente para mayor claridad
+        $currentProjectStatus = $proyecto->estado;
+        $currentProjectId = $proyecto->id;
+
         return $request->wantsJson()
             ? response()->json($proyecto, 200)
-            : view('proyectos.edit', compact('proyecto', 'personal', 'equipos'));
+            : view('proyectos.edit', compact(
+                'proyecto',
+                'personal',
+                'equipos',
+                'assignedPersonalGloballyInProcess',
+                'assignedEquiposGloballyInProcess',
+                'currentProjectStatus',
+                'currentProjectId'
+            ));
     }
 
     /**
@@ -252,7 +308,8 @@ class ProyectoController extends Controller
         DB::beginTransaction(); // Iniciar transacción
 
         try {
-            // Guardar el estado actual de las asignaciones de equipo para calcular el cambio de stock
+            // Guardar el estado actual de las asignaciones de equipo para calcular el cambio de cantidad
+            // FIX: Cambiado de equiposAsignados->pluck('pivot.cantidad', 'id') a equiposAsignados->pluck('pivot.cantidad', 'id')
             $previousEquipmentAssignments = $proyecto->equiposAsignados->pluck('pivot.cantidad', 'id')->toArray();
 
             // Actualizar los datos del proyecto
@@ -276,7 +333,7 @@ class ProyectoController extends Controller
             // Sincronizar personal asignado
             $proyecto->personalAsignado()->sync($requestedStaffIds);
 
-            // --- Lógica para equipos asignados y actualización de stock ---
+            // --- Lógica para equipos asignados y actualización de cantidad disponible ---
             $equiposRecursos = $validatedData['recursos_equipos'] ?? [];
             $syncEquipoData = [];
 
@@ -291,20 +348,21 @@ class ProyectoController extends Controller
             // Sincronizar equipos asignados
             $proyecto->equiposAsignados()->sync($syncEquipoData);
 
-            // --- Ajustar el stock de equipos después de la sincronización ---
+            // --- Ajustar la cantidad disponible de equipos después de la sincronización ---
             $newAssignedEquipoIds = array_keys($syncEquipoData);
 
-            // Incrementar stock para equipos que fueron removidos del proyecto
+            // Incrementar cantidad disponible para equipos que fueron removidos del proyecto
             foreach ($previousEquipmentAssignments as $equipoId => $oldQuantity) {
                 if (!in_array($equipoId, $newAssignedEquipoIds)) {
                     $equipo = Equipo::find($equipoId);
                     if ($equipo) {
-                        $equipo->increment('stock', $oldQuantity);
+                        // FIX: Cambiado de increment('stock', ...) a increment('cantidad', ...)
+                        $equipo->increment('cantidad', $oldQuantity);
                     }
                 }
             }
 
-            // Ajustar stock para equipos que permanecen o son nuevos
+            // Ajustar cantidad disponible para equipos que permanecen o son nuevos
             foreach ($syncEquipoData as $equipoId => $pivotData) {
                 $newQuantity = $pivotData['cantidad'];
                 $equipo = Equipo::find($equipoId);
@@ -313,11 +371,13 @@ class ProyectoController extends Controller
                     $oldQuantity = $previousEquipmentAssignments[$equipoId] ?? 0; // 0 si es una nueva asignación
 
                     if ($newQuantity > $oldQuantity) {
-                        // Si la cantidad aumentó, decrementar stock
-                        $equipo->decrement('stock', $newQuantity - $oldQuantity);
+                        // Si la cantidad aumentó, decrementar cantidad disponible
+                        // FIX: Cambiado de decrement('stock', ...) a decrement('cantidad', ...)
+                        $equipo->decrement('cantidad', $newQuantity - $oldQuantity);
                     } elseif ($newQuantity < $oldQuantity) {
-                        // Si la cantidad disminuyó, incrementar stock
-                        $equipo->increment('stock', $oldQuantity - $newQuantity);
+                        // Si la cantidad disminuyó, incrementar cantidad disponible
+                        // FIX: Cambiado de increment('stock', ...) a increment('cantidad', ...)
+                        $equipo->increment('cantidad', $oldQuantity - $newQuantity);
                     }
                     // Si newQuantity == oldQuantity, no se necesita cambio de stock para este ítem
                 }
@@ -362,14 +422,15 @@ class ProyectoController extends Controller
      */
     public function destroy(Proyecto $proyecto, Request $request)
     {
-        DB::beginTransaction(); // Iniciar transacción para asegurar la consistencia del stock
+        DB::beginTransaction(); // Iniciar transacción para asegurar la consistencia de la cantidad disponible
 
         try {
-            // Antes de eliminar el proyecto, devolver el stock de los equipos asignados
+            // Antes de eliminar el proyecto, devolver la cantidad disponible de los equipos asignados
             foreach ($proyecto->equiposAsignados as $equipoAsignado) {
                 $equipo = Equipo::find($equipoAsignado->id);
                 if ($equipo) {
-                    $equipo->increment('stock', $equipoAsignado->pivot->cantidad);
+                    // FIX: Cambiado de increment('stock', ...) a increment('cantidad', ...)
+                    $equipo->increment('cantidad', $equipoAsignado->pivot->cantidad);
                 }
             }
 

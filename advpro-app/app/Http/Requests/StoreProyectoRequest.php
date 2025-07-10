@@ -60,8 +60,8 @@ class StoreProyectoRequest extends FormRequest
 
                     if ($equipoId) {
                         $equipo = Equipo::find($equipoId);
-                        if ($equipo && $value > $equipo->stock) {
-                            $fail("La cantidad solicitada de '{$equipo->nombre}' ({$value}) excede el stock disponible ({$equipo->stock}).");
+                        if ($equipo && $value > $equipo->cantidad) {
+                            $fail("La cantidad solicitada de '{$equipo->nombre}' ({$value}) excede el stock disponible ({$equipo->cantidad}).");
                         }
                     }
                 },

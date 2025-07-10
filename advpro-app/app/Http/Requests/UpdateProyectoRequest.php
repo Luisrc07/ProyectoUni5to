@@ -61,7 +61,7 @@ class UpdateProyectoRequest extends FormRequest
                 'required_with:recursos_equipos.*.equipo_id',
                 'integer',
                 'min:1',
-                // Custom rule para validar el stock disponible del equipo en una actualización
+                // Custom rule para validar la cantidad disponible del equipo en una actualización
                 function ($attribute, $value, $fail) use ($proyecto) {
                     $index = explode('.', $attribute)[1]; // Obtiene el índice del array (e.g., 0, 1, 2)
                     $equipoId = $this->input("recursos_equipos.{$index}.equipo_id");
@@ -74,7 +74,8 @@ class UpdateProyectoRequest extends FormRequest
                             return;
                         }
 
-                        $currentStock = $equipo->stock;
+                        // FIX: Cambiado de $equipo->stock a $equipo->cantidad
+                        $currentCantidadDisponibleEquipo = $equipo->cantidad;
                         $assignedQuantityOnThisProject = 0;
 
                         // Si estamos actualizando un registro existente en este proyecto
@@ -82,17 +83,19 @@ class UpdateProyectoRequest extends FormRequest
                             $existingPivot = ProyectoRecurso::find($pivotId);
                             // Asegurarse de que el pivote pertenece al proyecto actual y es del tipo Equipo
                             if ($existingPivot && $existingPivot->proyecto_id == $proyecto->id && $existingPivot->asignable_type == Equipo::class) {
-                                // Sumar la cantidad que ya estaba asignada a este proyecto de vuelta al stock "virtual"
+                                // Sumar la cantidad que ya estaba asignada a este proyecto de vuelta a la "cantidad disponible virtual"
                                 // para la validación, ya que estamos considerando reasignarla o cambiarla.
                                 $assignedQuantityOnThisProject = $existingPivot->cantidad;
                             }
                         }
 
-                        // Calcular el stock disponible para esta operación de validación
+                        // Calcular la cantidad disponible para esta operación de validación
                         // Sumamos la cantidad que ya estaba asignada a este proyecto para no penalizarla dos veces.
-                        // Luego restamos la cantidad solicitada. Si el resultado es negativo, significa que excede el stock.
-                        if (($currentStock + $assignedQuantityOnThisProject) < $value) {
-                            $fail("La cantidad solicitada de '{$equipo->nombre}' ({$value}) excede el stock disponible ({$equipo->stock}).");
+                        // Luego restamos la cantidad solicitada. Si el resultado es negativo, significa que excede la cantidad.
+                        // FIX: Cambiado de $currentStock a $currentCantidadDisponibleEquipo
+                        if (($currentCantidadDisponibleEquipo + $assignedQuantityOnThisProject) < $value) {
+                            // FIX: Cambiado el mensaje de error para usar $equipo->cantidad
+                            $fail("La cantidad solicitada de '{$equipo->nombre}' ({$value}) excede la cantidad disponible ({$equipo->cantidad}).");
                         }
                     }
                 },
@@ -122,7 +125,7 @@ class UpdateProyectoRequest extends FormRequest
             'recursos_equipos.*.cantidad.required_with' => 'La cantidad es requerida para cada equipo asignado.',
             'recursos_equipos.*.cantidad.min' => 'La cantidad de equipo debe ser al menos :min.',
             'recursos_equipos.*.cantidad.integer' => 'La cantidad de equipo debe ser un número entero.',
-            // El mensaje para la validación de stock se maneja directamente en la regla personalizada.
+            // El mensaje para la validación de la cantidad se maneja directamente en la regla personalizada.
         ];
     }
 }

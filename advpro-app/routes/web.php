@@ -73,7 +73,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('equipos',   EquipoController::class);
 
 
-             //Contabilidad
+    //Contabilidad
     //(Se usa prefix para poder manejar mas funciones en el controlador
     //Fuera de los predefinidos, y el manejo de varios modelos.)
     Route::prefix('contabilidad')->group(function () {
@@ -108,6 +108,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard/obtener-cuentas', [DashboardController::class, 'obtenerCuentasPorTipo'])->name('dashboard.obtener-cuentas');
         // Ruta para obtener datos del gráfico
         Route::post('/dashboard/obtener-datos-grafico', [DashboardController::class, 'obtenerDatosGrafico'])->name('dashboard.obtener-datos-grafico');
+
+        Route::delete('asientos/{asiento}', [ContabilidadController::class, 'destroy'])->name('contabilidad.destroy');
+        
         
        
 
