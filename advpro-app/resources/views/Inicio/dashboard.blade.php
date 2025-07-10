@@ -2,6 +2,15 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- En el <head> o antes de cerrar </body> -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    
+    
+
+    
     <!-- Usa esta sintaxis (sin "path:") -->
     <script src="{{ asset('js/charts-bars.js') }}" defer></script>
     <script src="{{ asset('js/charts-pie.js') }}" defer></script>
@@ -171,6 +180,9 @@
         {{-- 3. Botón para Aplicar Filtros (con las clases del componente) --}}
         <button id="btn-graficar" class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:bg-purple-500 dark:hover:bg-purple-600 dark:focus:ring-purple-800">
             Generar Gráfico
+        </button>
+        <button id="btn-exportar-pdf" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 ml-2">
+            <i class="fas fa-file-pdf mr-2"></i>Exportar a PDF
         </button>
     </div>
 
@@ -374,11 +386,76 @@
                 generarGrafico();
             });
 
+            document.getElementById('btn-exportar-pdf').addEventListener('click', async function() {
+    // Configuración inicial
+    const element = document.getElementById('grafico-container');
+    const { jsPDF } = window.jspdf;
+    
+    // Capturar el contenedor
+    const canvas = await html2canvas(element, {
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        scrollY: -window.scrollY
+    });
+
+    // Crear PDF horizontal
+    const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm'
+    });
+
+    // Dimensiones
+    const pageWidth = 277;  // Ancho útil (297 - 20mm márgenes)
+    const pageHeight = 160; // Altura para gráfico
+    
+    // Calcular dimensiones manteniendo proporción
+    const imgRatio = canvas.width / canvas.height;
+    let imgWidth = pageWidth;
+    let imgHeight = imgWidth / imgRatio;
+    
+    if (imgHeight > pageHeight) {
+        imgHeight = pageHeight;
+        imgWidth = imgHeight * imgRatio;
+    }
+
+    // Posiciones (solo gráfico centrado)
+    const xPos = (297 - imgWidth) / 2; // Centrado horizontal
+    const yPos = 25; // Posición original para gráfico
+
+    // -- Títulos y pie (posición original) --
+    pdf.setFontSize(18);
+    pdf.setTextColor(30, 30, 30);
+    pdf.text('Reporte Grafico Gerencial', 20, 15); // Izquierda
+    
+    pdf.setFontSize(12);
+    pdf.text(`Datos: ${document.querySelector('#grafico-container h4').innerText}`, 20, 20);
+    pdf.text(`Generado: ${new Date().toLocaleDateString()}`, 250, 20, { align: 'right' });
+    
+    // Gráfico (centrado)
+    pdf.addImage(
+        canvas.toDataURL('image/png'), 
+        'PNG', 
+        xPos, // Centrado horizontal
+        yPos, // Posición vertical original
+        imgWidth, 
+        imgHeight
+    );
+
+    // Pie de página (original)
+    pdf.setFontSize(10);
+    pdf.setTextColor(100);
+    pdf.text('© AudioVisualPro', 20, 190);
+
+    // Descargar
+    pdf.save(`reporte_contable_${new Date().toLocaleDateString()}.pdf`);
+});
     </script>
 
     <div id="grafico-container" class="mt-6">
         <!-- El gráfico se insertará aquí manteniendo tus estilos -->
     </div>
+
 
 
     

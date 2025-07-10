@@ -9,6 +9,10 @@ use Illuminate\Support\Carbon;
 use App\Models\CuentaContable;
 use App\Models\DetalleAsiento;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\URL;
 use DateTime;
 
 class DashboardController extends Controller
@@ -83,63 +87,64 @@ class DashboardController extends Controller
         }
     }
 
-public function obtenerDatosGrafico(Request $request)
-{
-    $request->validate([
-        'cuenta_id' => 'required|numeric',
-        'tipo_grafico' => 'required|in:bar,line,pie'
-    ]);
-
-    $cuenta = CuentaContable::findOrFail($request->cuenta_id);
-    $year = date('Y');
-
-    // Consulta corregida usando el nombre exacto de la relación
-    $datos = DetalleAsiento::with('asientoContable')
-        ->where('id_cuenta', $request->cuenta_id)
-        ->whereHas('asientoContable', function($query) use ($year) {
-            $query->whereYear('fecha', $year);
-        })
-        ->selectRaw('
-            MONTH(asiento_contable.fecha) as mes,
-            SUM(detalle_asiento.debe) as total_debe,
-            SUM(detalle_asiento.haber) as total_haber
-        ')
-        ->join('asiento_contable', 'detalle_asiento.id_asiento', '=', 'asiento_contable.id_asiento')
-        ->groupByRaw('MONTH(asiento_contable.fecha)')
-        ->orderBy('mes')
-        ->get();
-
-        // Procesar para gráfico
-        $labels = [];
-        $debeData = [];
-        $haberData = [];
-        $totalDebe = 0;
-        $totalHaber = 0;
-
-        for ($mes = 1; $mes <= 12; $mes++) {
-            $nombreMes = DateTime::createFromFormat('!m', $mes)->format('F');
-            $labels[] = $nombreMes;
-            $mesDatos = $datos->firstWhere('mes', $mes);
-            
-            $debe = $mesDatos ? (float)$mesDatos->total_debe : 0;
-            $haber = $mesDatos ? (float)$mesDatos->total_haber : 0;
-            
-            $debeData[] = $debe;
-            $haberData[] = $haber;
-            
-            $totalDebe += $debe;
-            $totalHaber += $haber;
-        }
-
-        return response()->json([
-            'labels' => $labels,
-            'debeData' => $debeData,
-            'haberData' => $haberData,
-            'total_debe' => $totalDebe,
-            'total_haber' => $totalHaber,
-            'tipo_grafico' => $request->tipo_grafico,
-            'titulo' => "Movimientos de {$cuenta->nombre} ({$cuenta->codigo}) - {$year}"
+    public function obtenerDatosGrafico(Request $request)
+    {
+        $request->validate([
+            'cuenta_id' => 'required|numeric',
+            'tipo_grafico' => 'required|in:bar,line,pie'
         ]);
+
+        $cuenta = CuentaContable::findOrFail($request->cuenta_id);
+        $year = date('Y');
+
+        // Consulta corregida usando el nombre exacto de la relación
+        $datos = DetalleAsiento::with('asientoContable')
+            ->where('id_cuenta', $request->cuenta_id)
+            ->whereHas('asientoContable', function($query) use ($year) {
+                $query->whereYear('fecha', $year);
+            })
+            ->selectRaw('
+                MONTH(asiento_contable.fecha) as mes,
+                SUM(detalle_asiento.debe) as total_debe,
+                SUM(detalle_asiento.haber) as total_haber
+            ')
+            ->join('asiento_contable', 'detalle_asiento.id_asiento', '=', 'asiento_contable.id_asiento')
+            ->groupByRaw('MONTH(asiento_contable.fecha)')
+            ->orderBy('mes')
+            ->get();
+
+            // Procesar para gráfico
+            $labels = [];
+            $debeData = [];
+            $haberData = [];
+            $totalDebe = 0;
+            $totalHaber = 0;
+
+            for ($mes = 1; $mes <= 12; $mes++) {
+                $nombreMes = DateTime::createFromFormat('!m', $mes)->format('F');
+                $labels[] = $nombreMes;
+                $mesDatos = $datos->firstWhere('mes', $mes);
+                
+                $debe = $mesDatos ? (float)$mesDatos->total_debe : 0;
+                $haber = $mesDatos ? (float)$mesDatos->total_haber : 0;
+                
+                $debeData[] = $debe;
+                $haberData[] = $haber;
+                
+                $totalDebe += $debe;
+                $totalHaber += $haber;
+            }
+
+            return response()->json([
+                'labels' => $labels,
+                'debeData' => $debeData,
+                'haberData' => $haberData,
+                'total_debe' => $totalDebe,
+                'total_haber' => $totalHaber,
+                'tipo_grafico' => $request->tipo_grafico,
+                'titulo' => "Movimientos de {$cuenta->nombre} ({$cuenta->codigo}) - {$year}"
+            ]);
     }
+
     // ... (otros métodos)
 }

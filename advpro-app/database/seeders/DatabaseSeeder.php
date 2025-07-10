@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             StaffSeeder::class, 
             ClienteSeeder::class,
             EquipoSeeder::class, 
+            CuentaContableSeeder::class,
 ]);
     }
 }
