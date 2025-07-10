@@ -57,11 +57,15 @@ class StoreProyectoRequest extends FormRequest
                 function ($attribute, $value, $fail) {
                     $index = explode('.', $attribute)[1]; // Obtiene el índice del array (e.g., 0, 1, 2)
                     $equipoId = $this->input("recursos_equipos.{$index}.equipo_id");
+                    $proyectoEstado = $this->input('estado'); // Obtener el estado del proyecto
 
-                    if ($equipoId) {
-                        $equipo = Equipo::find($equipoId);
-                        if ($equipo && $value > $equipo->cantidad) {
-                            $fail("La cantidad solicitada de '{$equipo->nombre}' ({$value}) excede el stock disponible ({$equipo->cantidad}).");
+                    // Aplicar la validación de stock solo si el proyecto está "En proceso"
+                    if ($proyectoEstado === 'En proceso') {
+                        if ($equipoId) {
+                            $equipo = Equipo::find($equipoId);
+                            if ($equipo && $value > $equipo->cantidad) {
+                                $fail("La cantidad solicitada de '{$equipo->nombre}' ({$value}) excede el stock disponible ({$equipo->cantidad}). Este equipo ya está en uso o no hay suficiente stock para proyectos 'En proceso'.");
+                            }
                         }
                     }
                 },
