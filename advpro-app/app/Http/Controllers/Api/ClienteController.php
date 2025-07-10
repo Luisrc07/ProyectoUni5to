@@ -31,7 +31,7 @@ class ClienteController extends Controller
             });
         }
 
-        $clientes = $query->paginate(10)->appends($request->query());
+        $clientes = $query->paginate(5)->appends($request->query());
 
         return $request->wantsJson()
             ? response()->json($clientes, 200)
