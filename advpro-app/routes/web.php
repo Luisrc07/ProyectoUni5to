@@ -73,36 +73,38 @@ Route::middleware('auth')->group(function () {
     Route::resource('equipos',   EquipoController::class);
 
 
-         //Contabilidad
-        Route::prefix('contabilidad')->group(function () {
-
+             //Contabilidad
+    //(Se usa prefix para poder manejar mas funciones en el controlador
+    //Fuera de los predefinidos, y el manejo de varios modelos.)
+    Route::prefix('contabilidad')->group(function () {
+    
         // Ruta para el panel principal de contabilidad
         Route::get('panel', [ContabilidadController::class, 'index'])->name('contabilidad.index');
-
+    
         // Ruta para guardar un nuevo asiento contable
         Route::post('asientos', [ContabilidadController::class, 'store'])->name('contabilidad.store');
-
+    
         // NUEVA RUTA: Para guardar una nueva cuenta contable
         Route::post('cuentas', [ContabilidadController::class, 'storeCuenta'])->name('contabilidad.cuentas.store');
-
+    
         // 1. Devuelve cuentas padre filtradas por tipo (para el select dinámico)
         Route::get('cuentas/por-tipo/{tipo}', [ContabilidadController::class, 'getCuentasPorTipo'])->name('contabilidad.cuentas.porTipo');
-
+        
         // 2. Devuelve el siguiente código disponible basado en la cuenta padre (o el tipo)
         Route::get('cuentas/siguiente-codigo', [ContabilidadController::class, 'getSiguienteCodigo'])->name('contabilidad.cuentas.siguienteCodigo');
-
-        // Ruta para la vista HTML del Libro Diario (si la quieres mantener)
         Route::get('reportes/libro-diario', [ContabilidadController::class, 'generarLibroDiario'])->name('contabilidad.libroDiario');
-
-        // NUEVA RUTA: Para generar el PDF del Libro Diario y forzar la impresión
+    
         Route::get('reportes/libro-diario-pdf', [ContabilidadController::class, 'generarLibroDiarioPDF'])->name('contabilidad.libroDiarioPDF');
-
-        // NUEVA RUTA: Para la vista HTML del Libro Mayor
+        
         Route::get('reportes/libro-mayor', [ContabilidadController::class, 'generarLibroMayor'])->name('contabilidad.libroMayor');
-
+    
         Route::get('reportes/libro-mayor-pdf', [ContabilidadController::class, 'generarLibroMayorPDF'])->name('contabilidad.libroMayorPDF');
-
-});
+    
+        Route::get('reportes/balance-comprobacion', [ContabilidadController::class, 'generarBalanceComprobacion'])->name('contabilidad.balanceComprobacion');
+    
+        Route::get('reportes/balance-comprobacion-pdf', [ContabilidadController::class, 'generarBalanceComprobacionPDF'])->name('contabilidad.balanceComprobacionPDF');
+    
+    });
 
 
 });
