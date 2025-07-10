@@ -99,12 +99,17 @@ Route::middleware('auth')->group(function () {
         Route::get('reportes/libro-mayor', [ContabilidadController::class, 'generarLibroMayor'])->name('contabilidad.libroMayor');
     
         Route::get('reportes/libro-mayor-pdf', [ContabilidadController::class, 'generarLibroMayorPDF'])->name('contabilidad.libroMayorPDF');
-    
+
         Route::get('reportes/balance-comprobacion', [ContabilidadController::class, 'generarBalanceComprobacion'])->name('contabilidad.balanceComprobacion');
     
         Route::get('reportes/balance-comprobacion-pdf', [ContabilidadController::class, 'generarBalanceComprobacionPDF'])->name('contabilidad.balanceComprobacionPDF');
-    
-    });
+
+        // Datos para graficos en el dashboard
+        Route::get('/dashboard/obtener-cuentas', [DashboardController::class, 'obtenerCuentasPorTipo'])->name('dashboard.obtener-cuentas');
+
+        Route::post('/dashboard/obtener-datos-grafico', [DashboardController::class, 'obtenerDatosGrafico'])->name('dashboard.obtener-datos-grafico');
+
+});
 
 
 });

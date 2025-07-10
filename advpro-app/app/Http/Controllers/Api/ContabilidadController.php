@@ -39,7 +39,7 @@ class ContabilidadController extends Controller
         $queryAsientos->latest();
 
         // 3. Ejecutar la consulta y paginar los resultados
-        $asientos = $queryAsientos->paginate(10)->appends($request->query());
+        $asientos = $queryAsientos->paginate(5)->appends($request->query());
 
         // Cuentas que pueden recibir movimientos (hojas del árbol contable)
         $movimientoCuentas = CuentaContable::whereDoesntHave('hijas')->orderBy('codigo')->get();
