@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api; // Asegúrate de que el namespace sea correcto si está en Api
 
 use App\Http\Controllers\Controller;
 use App\Models\Asiento;
@@ -9,6 +9,7 @@ use App\Models\CuentaContable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ContabilidadController extends Controller
 {
@@ -213,5 +214,252 @@ class ContabilidadController extends Controller
         }
 
         return response()->json(['siguiente_codigo' => $nuevoCodigo]);
+    }
+
+    
+    /**
+     * Genera un mapeo de IDs de cuentas contables únicos a números de referencia incrementales.
+     * Este mapeo asegura que cada cuenta única tenga un solo número de referencia,
+     * el cual se reutilizará si la cuenta aparece múltiples veces.
+     *
+     * @param \Illuminate\Database\Eloquent\Collection $asientos Colección de asientos con sus detalles y cuentas contables.
+     * @return array Un array asociativo donde la clave es el ID de la cuenta y el valor es su número de referencia.
+     */
+    public function getUniqueAccountReferences($asientos)
+    {
+        $accountReferences = []; // Almacenará el mapeo final: [cuenta_id => numero_referencia]
+        $refCounter = 1;        // Contador para asignar los números de referencia
+
+        // Recorrer todos los asientos y sus detalles para asignar referencias
+        // en el orden en que las cuentas son encontradas por primera vez.
+        foreach ($asientos as $asiento) {
+            foreach ($asiento->detalles as $detalle) {
+                if ($detalle->cuentaContable) {
+                    $accountId = $detalle->cuentaContable->id_cuenta;
+                    // Si la cuenta aún no tiene una referencia asignada, le asignamos una nueva.
+                    if (!isset($accountReferences[$accountId])) {
+                        $accountReferences[$accountId] = $refCounter++;
+                    }
+                }
+            }
+        }
+
+        return $accountReferences;
+    }
+
+    public function generarLibroDiario(Request $request)
+    {
+        $query = Asiento::with('detalles.cuentaContable')
+                        ->orderBy('fecha', 'asc');
+
+        if ($request->filled('fecha_inicio')) {
+            $query->where('fecha', '>=', $request->fecha_inicio);
+        }
+        if ($request->filled('fecha_fin')) {
+            $query->where('fecha', '<=', $request->fecha_fin);
+        }
+
+        $asientos = $query->get();
+        $accountReferences = $this->getUniqueAccountReferences($asientos); // Obtener referencias únicas
+
+        return view('contabilidad.libro-diario', compact('asientos', 'accountReferences'));
+    }
+
+    public function generarLibroDiarioPDF(Request $request)
+    {
+        $query = Asiento::with('detalles.cuentaContable')
+                        ->orderBy('fecha', 'asc');
+
+        if ($request->filled('fecha_inicio')) {
+            $query->where('fecha', '>=', $request->fecha_inicio);
+        }
+        if ($request->filled('fecha_fin')) {
+            $query->where('fecha', '<=', $request->fecha_fin);
+        }
+
+        $asientos = $query->get();
+        $accountReferences = $this->getUniqueAccountReferences($asientos); // Obtener referencias únicas
+
+        // Cargar la vista específica para el PDF con los datos.
+        $pdf = Pdf::loadView('contabilidad.libro-diario-pdf', compact('asientos', 'accountReferences'));
+
+        // Servir el PDF al navegador para descarga o visualización.
+        return $pdf->stream('reporte_libro_diario_' . date('Y-m-d') . '.pdf');
+    }
+
+    protected function getAsientoSequentialNumbers($asientos)
+    {
+        $sequentialNumbers = [];
+        $counter = 1;
+        foreach ($asientos as $asiento) {
+            $sequentialNumbers[$asiento->id_asiento] = $counter++;
+        }
+        return $sequentialNumbers;
+    }
+
+    public function generarLibroMayor(Request $request)
+    {
+        // Obtener todos los asientos con sus detalles y cuentas contables
+        $queryAsientos = Asiento::with('detalles.cuentaContable')
+                                ->orderBy('fecha', 'asc')
+                                ->orderBy('id_asiento', 'asc'); // Ordenar por fecha y luego por ID de asiento
+
+        if ($request->filled('fecha_inicio')) {
+            $queryAsientos->where('fecha', '>=', $request->fecha_inicio);
+        }
+        if ($request->filled('fecha_fin')) {
+            $queryAsientos->where('fecha', '<=', $request->fecha_fin);
+        }
+
+        $asientos = $queryAsientos->get();
+
+        // Obtener las referencias únicas de las cuentas del Libro Diario
+        // Esto asegura que el orden de las cuentas en el Libro Mayor sea el mismo que en el Diario
+        $accountReferences = $this->getUniqueAccountReferences($asientos);
+        // Obtener los números secuenciales de los asientos para la referencia en el Libro Mayor
+        $asientoSequentialNumbers = $this->getAsientoSequentialNumbers($asientos);
+
+        $libroMayorData = [];
+        $currentBalances = []; // Para mantener el saldo acumulado de cada cuenta
+
+        // Inicializar la estructura del libro mayor y los saldos actuales
+        // Recorremos las referencias ordenadas para mantener el orden del Diario
+        foreach ($accountReferences as $accountId => $reference) {
+            $cuenta = CuentaContable::find($accountId); // Obtener el objeto CuentaContable
+            if ($cuenta) {
+                $libroMayorData[$accountId] = [
+                    'codigo' => $cuenta->codigo,
+                    'nombre' => $cuenta->nombre,
+                    'referencia_cuenta' => $reference,
+                    'tipo' => $cuenta->tipo, // Almacenar el tipo de cuenta
+                    'movimientos' => [],
+                    'total_debe_cuenta' => 0, // Inicializar totales por cuenta
+                    'total_haber_cuenta' => 0, // Inicializar totales por cuenta
+                ];
+                $currentBalances[$accountId] = 0; // Saldo inicial para el reporte
+            }
+        }
+
+        // Procesar los asientos para llenar los movimientos de cada cuenta
+        foreach ($asientos as $asiento) {
+            foreach ($asiento->detalles as $detalle) {
+                if ($detalle->cuentaContable) {
+                    $accountId = $detalle->cuentaContable->id_cuenta;
+
+                    // Asegurarse de que la cuenta existe en nuestro libroMayorData (ya inicializada)
+                    if (isset($libroMayorData[$accountId])) {
+                        $tipoCuenta = $libroMayorData[$accountId]['tipo']; // Obtener el tipo de cuenta
+
+                        // Actualizar el saldo acumulado según el tipo de cuenta
+                        if (in_array($tipoCuenta, ['activo', 'egreso', 'costo'])) {
+                            $currentBalances[$accountId] += $detalle->debe;
+                            $currentBalances[$accountId] -= $detalle->haber;
+                        } else { // 'pasivo', 'patrimonio', 'ingreso'
+                            $currentBalances[$accountId] += $detalle->haber;
+                            $currentBalances[$accountId] -= $detalle->debe;
+                        }
+
+                        // Acumular totales de Debe y Haber para la cuenta actual
+                        $libroMayorData[$accountId]['total_debe_cuenta'] += $detalle->debe;
+                        $libroMayorData[$accountId]['total_haber_cuenta'] += $detalle->haber;
+
+                        // Añadir el movimiento al array de movimientos de la cuenta
+                        $libroMayorData[$accountId]['movimientos'][] = [
+                            'fecha' => $asiento->fecha,
+                            'asiento_ref_diario' => $asientoSequentialNumbers[$asiento->id_asiento],
+                            'descripcion_asiento' => $asiento->descripcion,
+                            'debe' => $detalle->debe,
+                            'haber' => $detalle->haber,
+                            'balance_acumulado' => $currentBalances[$accountId],
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Convertir el array asociativo a un array indexado para facilitar el bucle en la vista
+        // y mantener el orden por referencia de cuenta
+        $sortedLibroMayorData = collect($libroMayorData)->sortBy('referencia_cuenta')->values()->all();
+
+        return view('contabilidad.libro-mayor', compact('sortedLibroMayorData'));
+    }
+
+    public function generarLibroMayorPDF(Request $request)
+    {
+        // Obtener todos los asientos con sus detalles y cuentas contables
+        $queryAsientos = Asiento::with('detalles.cuentaContable')
+                                ->orderBy('fecha', 'asc')
+                                ->orderBy('id_asiento', 'asc');
+
+        if ($request->filled('fecha_inicio')) {
+            $queryAsientos->where('fecha', '>=', $request->fecha_inicio);
+        }
+        if ($request->filled('fecha_fin')) {
+            $queryAsientos->where('fecha', '<=', $request->fecha_fin);
+        }
+
+        $asientos = $queryAsientos->get();
+
+        $accountReferences = $this->getUniqueAccountReferences($asientos);
+        $asientoSequentialNumbers = $this->getAsientoSequentialNumbers($asientos);
+
+        $libroMayorData = [];
+        $currentBalances = [];
+
+        foreach ($accountReferences as $accountId => $reference) {
+            $cuenta = CuentaContable::find($accountId);
+            if ($cuenta) {
+                $libroMayorData[$accountId] = [
+                    'codigo' => $cuenta->codigo,
+                    'nombre' => $cuenta->nombre,
+                    'referencia_cuenta' => $reference,
+                    'tipo' => $cuenta->tipo,
+                    'movimientos' => [],
+                    'total_debe_cuenta' => 0,
+                    'total_haber_cuenta' => 0,
+                ];
+                $currentBalances[$accountId] = 0;
+            }
+        }
+
+        foreach ($asientos as $asiento) {
+            foreach ($asiento->detalles as $detalle) {
+                if ($detalle->cuentaContable) {
+                    $accountId = $detalle->cuentaContable->id_cuenta;
+
+                    if (isset($libroMayorData[$accountId])) {
+                        $tipoCuenta = $libroMayorData[$accountId]['tipo'];
+
+                        if (in_array($tipoCuenta, ['activo', 'egreso', 'costo'])) {
+                            $currentBalances[$accountId] += $detalle->debe;
+                            $currentBalances[$accountId] -= $detalle->haber;
+                        } else {
+                            $currentBalances[$accountId] += $detalle->haber;
+                            $currentBalances[$accountId] -= $detalle->debe;
+                        }
+
+                        $libroMayorData[$accountId]['total_debe_cuenta'] += $detalle->debe;
+                        $libroMayorData[$accountId]['total_haber_cuenta'] += $detalle->haber;
+
+                        $libroMayorData[$accountId]['movimientos'][] = [
+                            'fecha' => $asiento->fecha,
+                            'asiento_ref_diario' => $asientoSequentialNumbers[$asiento->id_asiento],
+                            'descripcion_asiento' => $asiento->descripcion,
+                            'debe' => $detalle->debe,
+                            'haber' => $detalle->haber,
+                            'balance_acumulado' => $currentBalances[$accountId],
+                        ];
+                    }
+                }
+            }
+        }
+
+        $sortedLibroMayorData = collect($libroMayorData)->sortBy('referencia_cuenta')->values()->all();
+
+        // Cargar la vista específica para el PDF con los datos.
+        $pdf = Pdf::loadView('contabilidad.libro-mayor-pdf', compact('sortedLibroMayorData'));
+
+        // Servir el PDF al navegador para descarga o visualización.
+        return $pdf->stream('reporte_libro_mayor_' . date('Y-m-d') . '.pdf');
     }
 }
