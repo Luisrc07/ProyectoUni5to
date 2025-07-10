@@ -462,4 +462,228 @@ class ContabilidadController extends Controller
         // Servir el PDF al navegador para descarga o visualización.
         return $pdf->stream('reporte_libro_mayor_' . date('Y-m-d') . '.pdf');
     }
+
+public function generarBalanceComprobacion(Request $request)
+    {
+        // Obtener todos los detalles de asiento para identificar las cuentas con movimientos
+        $queryDetalles = DetalleAsiento::with('cuentaContable', 'asientoContable');
+
+        // Aquí podrías añadir lógica de filtrado por fecha si es necesario para el balance
+        // Ejemplo:
+        /*
+        if ($request->filled('fecha_inicio')) {
+            $queryDetalles->whereHas('asientoContable', function ($q) use ($request) {
+                $q->where('fecha', '>=', $request->fecha_inicio);
+            });
+        }
+        if ($request->filled('fecha_fin')) {
+            $queryDetalles->whereHas('asientoContable', function ($q) use ($request) {
+                $q->where('fecha', '<=', $request->fecha_fin);
+            });
+        }
+        */
+
+        $detallesConMovimientos = $queryDetalles->get();
+
+        // Agrupar los movimientos por cuenta contable
+        $cuentasConMovimientos = [];
+        foreach ($detallesConMovimientos as $detalle) {
+            if ($detalle->cuentaContable) {
+                $accountId = $detalle->cuentaContable->id_cuenta;
+                if (!isset($cuentasConMovimientos[$accountId])) {
+                    $cuentasConMovimientos[$accountId] = [
+                        'cuenta' => $detalle->cuentaContable,
+                        'total_debe' => 0,
+                        'total_haber' => 0,
+                    ];
+                }
+                $cuentasConMovimientos[$accountId]['total_debe'] += $detalle->debe;
+                $cuentasConMovimientos[$accountId]['total_haber'] += $detalle->haber;
+            }
+        }
+
+        // Definir el orden deseado de los tipos de cuenta
+        $typeOrder = [
+            'activo' => 1,
+            'pasivo' => 2,
+            'patrimonio' => 3,
+            'ingreso' => 4,
+            'egreso' => 5,
+            'costo' => 6,
+        ];
+
+        // Convertir el array asociativo a una colección y ordenar primero por el índice del tipo, luego por código
+        $sortedCuentasConMovimientos = collect($cuentasConMovimientos)->sortBy(function ($item) use ($typeOrder) {
+            $order = $typeOrder[$item['cuenta']->tipo] ?? 99; // Asignar un número alto si el tipo no está en la lista
+            return [$order, $item['cuenta']->codigo]; // Ordenar por array: primero por orden de tipo, luego por código
+        })->values();
+
+        $balanceData = [];
+        $granTotalMovimientosDebe = 0;
+        $granTotalMovimientosHaber = 0;
+        $granTotalSaldoDebe = 0;
+        $granTotalSaldoHaber = 0;
+
+        foreach ($sortedCuentasConMovimientos as $item) {
+            $cuenta = $item['cuenta'];
+            $totalDebeCuenta = $item['total_debe'];
+            $totalHaberCuenta = $item['total_haber'];
+
+            $saldoFinalDebe = 0;
+            $saldoFinalHaber = 0;
+
+            // Calcular el saldo final según el tipo de cuenta
+            if (in_array($cuenta->tipo, ['activo', 'egreso', 'costo'])) {
+                $saldo = $totalDebeCuenta - $totalHaberCuenta;
+                if ($saldo > 0) {
+                    $saldoFinalDebe = $saldo;
+                } else {
+                    $saldoFinalHaber = abs($saldo); // Si es negativo, va en Haber
+                }
+            } else { // Pasivo, Patrimonio, Ingreso
+                $saldo = $totalHaberCuenta - $totalDebeCuenta;
+                if ($saldo > 0) {
+                    $saldoFinalHaber = $saldo;
+                } else {
+                    $saldoFinalDebe = abs($saldo); // Si es negativo, va en Debe
+                }
+            }
+
+            $balanceData[] = [
+                'codigo' => $cuenta->codigo,
+                'nombre' => $cuenta->nombre,
+                'total_movimientos_debe' => $totalDebeCuenta,
+                'total_movimientos_haber' => $totalHaberCuenta,
+                'saldo_final_debe' => $saldoFinalDebe,
+                'saldo_final_haber' => $saldoFinalHaber,
+            ];
+
+            $granTotalMovimientosDebe += $totalDebeCuenta;
+            $granTotalMovimientosHaber += $totalHaberCuenta;
+            $granTotalSaldoDebe += $saldoFinalDebe;
+            $granTotalSaldoHaber += $saldoFinalHaber;
+        }
+
+        return view('contabilidad.balance-comprobacion', compact(
+            'balanceData',
+            'granTotalMovimientosDebe',
+            'granTotalMovimientosHaber',
+            'granTotalSaldoDebe',
+            'granTotalSaldoHaber'
+        ));
+    }
+
+    public function generarBalanceComprobacionPDF(Request $request)
+    {
+        // Obtener todos los detalles de asiento para identificar las cuentas con movimientos
+        $queryDetalles = DetalleAsiento::with('cuentaContable', 'asientoContable');
+
+        // Aquí podrías añadir lógica de filtrado por fecha si es necesario para el balance
+        // Ejemplo:
+        /*
+        if ($request->filled('fecha_inicio')) {
+            $queryDetalles->whereHas('asientoContable', function ($q) use ($request) {
+                $q->where('fecha', '>=', $request->fecha_inicio);
+            });
+        }
+        if ($request->filled('fecha_fin')) {
+            $queryDetalles->whereHas('asientoContable', function ($q) use ($request) {
+                $q->where('fecha', '<=', $request->fecha_fin);
+            });
+        }
+        */
+
+        $detallesConMovimientos = $queryDetalles->get();
+
+        // Agrupar los movimientos por cuenta contable
+        $cuentasConMovimientos = [];
+        foreach ($detallesConMovimientos as $detalle) {
+            if ($detalle->cuentaContable) {
+                $accountId = $detalle->cuentaContable->id_cuenta;
+                if (!isset($cuentasConMovimientos[$accountId])) {
+                    $cuentasConMovimientos[$accountId] = [
+                        'cuenta' => $detalle->cuentaContable,
+                        'total_debe' => 0,
+                        'total_haber' => 0,
+                    ];
+                }
+                $cuentasConMovimientos[$accountId]['total_debe'] += $detalle->debe;
+                $cuentasConMovimientos[$accountId]['total_haber'] += $detalle->haber;
+            }
+        }
+
+        // Definir el orden deseado de los tipos de cuenta
+        $typeOrder = [
+            'activo' => 1,
+            'pasivo' => 2,
+            'patrimonio' => 3,
+            'ingreso' => 4,
+            'egreso' => 5,
+            'costo' => 6,
+        ];
+
+        // Convertir el array asociativo a una colección y ordenar primero por el índice del tipo, luego por código
+        $sortedCuentasConMovimientos = collect($cuentasConMovimientos)->sortBy(function ($item) use ($typeOrder) {
+            $order = $typeOrder[$item['cuenta']->tipo] ?? 99; // Asignar un número alto si el tipo no está en la lista
+            return [$order, $item['cuenta']->codigo]; // Ordenar por array: primero por orden de tipo, luego por código
+        })->values();
+
+        $balanceData = [];
+        $granTotalMovimientosDebe = 0;
+        $granTotalMovimientosHaber = 0;
+        $granTotalSaldoDebe = 0;
+        $granTotalSaldoHaber = 0;
+
+        foreach ($sortedCuentasConMovimientos as $item) {
+            $cuenta = $item['cuenta'];
+            $totalDebeCuenta = $item['total_debe'];
+            $totalHaberCuenta = $item['total_haber'];
+
+            $saldoFinalDebe = 0;
+            $saldoFinalHaber = 0;
+
+            // Calcular el saldo final según el tipo de cuenta
+            if (in_array($cuenta->tipo, ['activo', 'egreso', 'costo'])) {
+                $saldo = $totalDebeCuenta - $totalHaberCuenta;
+                if ($saldo > 0) {
+                    $saldoFinalDebe = $saldo;
+                } else {
+                    $saldoFinalHaber = abs($saldo); // Si es negativo, va en Haber
+                }
+            } else { // Pasivo, Patrimonio, Ingreso
+                $saldo = $totalHaberCuenta - $totalDebeCuenta;
+                if ($saldo > 0) {
+                    $saldoFinalHaber = $saldo;
+                } else {
+                    $saldoFinalDebe = abs($saldo); // Si es negativo, va en Debe
+                }
+            }
+
+            $balanceData[] = [
+                'codigo' => $cuenta->codigo,
+                'nombre' => $cuenta->nombre,
+                'total_movimientos_debe' => $totalDebeCuenta,
+                'total_movimientos_haber' => $totalHaberCuenta,
+                'saldo_final_debe' => $saldoFinalDebe,
+                'saldo_final_haber' => $saldoFinalHaber,
+            ];
+
+            $granTotalMovimientosDebe += $totalDebeCuenta;
+            $granTotalMovimientosHaber += $totalHaberCuenta;
+            $granTotalSaldoDebe += $saldoFinalDebe;
+            $granTotalSaldoHaber += $saldoFinalHaber; // ¡Esta es la línea corregida!
+        }
+
+        // Cargar la vista específica para el PDF con los datos.
+        $pdf = Pdf::loadView('contabilidad.balance-comprobacion-pdf', compact(
+            'balanceData',
+            'granTotalMovimientosDebe',
+            'granTotalMovimientosHaber',
+            'granTotalSaldoDebe',
+            'granTotalSaldoHaber'
+        ));
+
+        // Servir el PDF al navegador para descarga o visualización.
+        return $pdf->stream('reporte_balance_comprobacion_' . date('Y-m-d') . '.pdf');
+    }
 }

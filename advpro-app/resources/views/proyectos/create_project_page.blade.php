@@ -204,6 +204,8 @@
 
             // Cargar personal existente (desde $proyecto)
             initialPersonal.forEach(p => {
+                // p.pivot.id es el ID del registro en proyecto_recursos
+                // p.id es el ID del Staff
                 addPersonal(p.pivot.id, p.id);
             });
             // Cargar personal de old() que no esté ya cargado (para errores de validación en nuevas adiciones)
@@ -220,6 +222,9 @@
 
             // Cargar equipos existentes (desde $proyecto)
             initialEquipos.forEach(e => {
+                // e.pivot.id es el ID del registro en proyecto_recursos
+                // e.id es el ID del Equipo
+                // e.pivot.cantidad es la cantidad asignada a este proyecto
                 addEquipo(e.pivot.id, e.id, e.pivot.cantidad);
             });
             // Cargar equipos de old() que no estén ya cargados
@@ -297,13 +302,17 @@
             equipoSelects.forEach(currentSelect => {
                 const selectedEquipoIds = getCurrentlySelectedIds('equipos');
                 const currentSelectedValue = currentSelect.value; // Guardar el valor actual
+                const currentEquipoElement = currentSelect.closest('.resource-row');
+                const cantidadInput = currentEquipoElement.querySelector('input[name$="[cantidad]"]');
 
                 currentSelect.innerHTML = '<option value="" disabled selected>Seleccione equipo</option>'; // Resetear opciones
 
                 allEquipos.forEach(e => {
                     const option = document.createElement('option');
                     option.value = e.id;
-                    option.textContent = `${e.nombre} (${e.marca}) - Stock: ${e.stock}`; // Mostrar stock
+                    // FIX: Usa e.cantidad en lugar de e.stock
+                    const cantidadDisplay = e.cantidad !== undefined ? e.cantidad : 'N/A';
+                    option.textContent = `${e.nombre} (${e.marca}) - Cantidad: ${cantidadDisplay}`; // Mostrar cantidad disponible
 
                     let isDisabled = false;
 
@@ -329,6 +338,43 @@
                     currentSelect.appendChild(option);
                 });
                 currentSelect.value = currentSelectedValue; // Restaurar el valor
+
+                // FIX: Actualizar el atributo 'max' del input de cantidad cuando cambia el selector de equipo
+                if (currentSelectedValue && cantidadInput) {
+                    const selectedEquipo = allEquipos.find(e => e.id == parseInt(currentSelectedValue));
+                    if (selectedEquipo) {
+                        // Calcula la cantidad efectiva: cantidad global + cantidad ya asignada a este proyecto (si aplica)
+                        let effectiveCantidad = selectedEquipo.cantidad; // FIX: Usa selectedEquipo.cantidad
+                        const initialAssignedQuantity = initialEquipos.find(ie => ie.id == selectedEquipo.id)?.pivot.cantidad || 0;
+                        const isExistingAssignmentForThisProject = initialEquipos.some(ie => ie.id == selectedEquipo.id);
+
+                        if (isExistingAssignmentForThisProject && currentProjectStatus === 'En proceso') {
+                            // Si es una asignación existente del proyecto actual,
+                            // y el proyecto está "En proceso", la cantidad disponible es la cantidad actual del equipo
+                            // más la cantidad de ese equipo que ya tiene asignada este proyecto.
+                            // Esto evita que la cantidad que el proyecto ya "posee" impida reducir la cantidad.
+                            effectiveCantidad = selectedEquipo.cantidad + initialAssignedQuantity; // FIX: Usa selectedEquipo.cantidad
+                        } else {
+                            // Para nuevas asignaciones o si el proyecto no está en proceso, la cantidad es simplemente la actual.
+                            effectiveCantidad = selectedEquipo.cantidad; // FIX: Usa selectedEquipo.cantidad
+                        }
+                        
+                        // Si el proyecto no está en proceso y la cantidad está disponible, también podemos considerar la cantidad actual.
+                        // Sin embargo, si el equipo ya está asignado a este proyecto y el proyecto está 'En proceso',
+                        // la cantidad a considerar es la cantidad base más la cantidad ya asignada por este proyecto.
+                        // FIX: Ajustar el max del input de cantidad
+                        cantidadInput.setAttribute('max', effectiveCantidad);
+                        if (parseInt(cantidadInput.value) > effectiveCantidad) {
+                            cantidadInput.value = effectiveCantidad;
+                        }
+                    }
+                } else if (cantidadInput) {
+                    cantidadInput.removeAttribute('max'); // Quitar el max si no hay equipo seleccionado
+                }
+
+                // También se debe ajustar el max en el input de cantidad al cargar la página
+                // o cuando se añade un nuevo elemento de equipo.
+                // Esto se maneja mejor en la función addEquipo.
             });
         }
 
@@ -374,21 +420,51 @@
             newDiv.className = 'flex items-center gap-3 mb-3 p-2 border border-gray-200 dark:border-gray-700 rounded-md resource-row';
             newDiv.dataset.index = equipoIndex;
 
+            // Encontrar el equipo seleccionado para obtener su cantidad y asignarlo al atributo max
+            let maxCantidad = 0; // FIX: Cambiado a maxCantidad
+            let selectedEquipoName = "Seleccione equipo";
+            if (equipo_id) {
+                const selectedEquipo = allEquipos.find(e => e.id == equipo_id);
+                if (selectedEquipo) {
+                    maxCantidad = selectedEquipo.cantidad; // FIX: Usa selectedEquipo.cantidad
+                    selectedEquipoName = `${selectedEquipo.nombre} (${selectedEquipo.marca})`;
+
+                    // Para el modo de edición, si el proyecto está 'En proceso' y este equipo ya estaba asignado,
+                    // sumamos la cantidad ya asignada al stock disponible para la validación del max.
+                    const initialAssignedQuantity = initialEquipos.find(ie => ie.id == equipo_id)?.pivot.cantidad || 0;
+                    if (currentProjectStatus === 'En proceso' && initialAssignedQuantity > 0) {
+                        maxCantidad = selectedEquipo.cantidad + initialAssignedQuantity; // FIX: Usa selectedEquipo.cantidad
+                    }
+                }
+            }
+
+            // Asegurarse de que la cantidad inicial no exceda el maxCantidad
+            if (cantidad > maxCantidad && maxCantidad > 0) {
+                cantidad = maxCantidad;
+            } else if (maxCantidad === 0 && equipo_id) { // Si el equipo tiene 0 cantidad y está seleccionado
+                 cantidad = 0;
+            }
+
+
             newDiv.innerHTML = `
                 <input type="hidden" name="recursos_equipos[${equipoIndex}][id]" value="${id || ''}">
                 <div class="flex-grow grid grid-cols-1 md:grid-cols-2 gap-3"> {{-- Este div toma el espacio disponible y organiza sus inputs en una grilla --}}
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Equipo:</label>
-                        <select name="recursos_equipos[${equipoIndex}][equipo_id]" onchange="calculatePresupuesto(); updateAllSelectOptions();"
+                        <select name="recursos_equipos[${equipoIndex}][equipo_id]" onchange="updateEquipoQuantityMax(this); calculatePresupuesto(); updateAllSelectOptions();"
                             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" required>
                             <option value="" disabled selected>Seleccione equipo</option>
-                            ${allEquipos.map(e => `<option value="${e.id}" ${e.id == equipo_id ? 'selected' : ''}>${e.nombre} (${e.marca}) - Stock: ${e.stock}</option>`).join('')}
+                            ${allEquipos.map(e => {
+                                // FIX: Usa e.cantidad
+                                const cantidadDisplay = e.cantidad !== undefined ? e.cantidad : 'N/A';
+                                return `<option value="${e.id}" ${e.id == equipo_id ? 'selected' : ''}>${e.nombre} (${e.marca}) - Cantidad: ${cantidadDisplay}</option>`;
+                            }).join('')}
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-gray-400">Cantidad:</label>
-                        <input type="number" name="recursos_equipos[${equipoIndex}][cantidad]" value="${cantidad}" oninput="calculatePresupuesto()"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" min="1" required>
+                        <input type="number" name="recursos_equipos[${equipoIndex}][cantidad]" value="${cantidad}" oninput="calculatePresupuesto();"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 text-sm" min="1" ${maxCantidad > 0 ? `max="${maxCantidad}"` : ''} required> {{-- FIX: Usa maxCantidad --}}
                     </div>
                 </div>
                 <button type="button" onclick="removeEquipo(this)"
@@ -400,6 +476,11 @@
             equipoIndex++;
             calculatePresupuesto();
             updateAllSelectOptions(); // Actualizar opciones después de añadir
+            // FIX: Llama a updateEquipoQuantityMax para el nuevo elemento si ya tiene un equipo_id
+            if (equipo_id) {
+                const newSelect = newDiv.querySelector(`select[name="recursos_equipos[${equipoIndex-1}][equipo_id]"]`);
+                updateEquipoQuantityMax(newSelect);
+            }
         }
 
         function removeEquipo(button) {
@@ -408,6 +489,44 @@
             calculatePresupuesto();
             updateAllSelectOptions(); // Actualizar opciones después de eliminar
         }
+
+        // FIX: Nueva función para actualizar el 'max' del input de cantidad cuando cambia el selector de equipo
+        function updateEquipoQuantityMax(selectElement) {
+            const currentEquipoElement = selectElement.closest('.resource-row');
+            const cantidadInput = currentEquipoElement.querySelector('input[name$="[cantidad]"]');
+            const equipoId = selectElement.value;
+
+            if (equipoId && cantidadInput) {
+                const selectedEquipo = allEquipos.find(e => e.id == parseInt(equipoId));
+                if (selectedEquipo) {
+                    let effectiveCantidad = selectedEquipo.cantidad; // FIX: Usa selectedEquipo.cantidad
+                    // Para el modo de edición, si el proyecto está 'En proceso' y este equipo ya estaba asignado a ESTE PROYECTO,
+                    // sumamos la cantidad ya asignada al stock disponible para la validación del max.
+                    const initialAssignedQuantity = initialEquipos.find(ie => ie.id == selectedEquipo.id)?.pivot.cantidad || 0;
+
+                    // IMPORTANTE: Solo ajustamos la cantidad si es una asignación existente para ESTE PROYECTO
+                    // Y el proyecto está en estado 'En proceso'.
+                    // De lo contrario, el 'max' debe ser la cantidad disponible.
+                    const isExistingAssignmentForThisProject = initialEquipos.some(ie => ie.id == selectedEquipo.id);
+                    if (isExistingAssignmentForThisProject && currentProjectStatus === 'En proceso') {
+                         effectiveCantidad = selectedEquipo.cantidad + initialAssignedQuantity; // FIX: Usa selectedEquipo.cantidad
+                    }
+
+
+                    cantidadInput.setAttribute('max', effectiveCantidad);
+                    if (parseInt(cantidadInput.value) > effectiveCantidad) {
+                        cantidadInput.value = effectiveCantidad; // Ajusta la cantidad si excede el nuevo max
+                    }
+                } else {
+                    cantidadInput.removeAttribute('max'); // Si no se encuentra el equipo, quitar max
+                    cantidadInput.value = 1; // Resetea a 1 o un valor por defecto
+                }
+            } else if (cantidadInput) {
+                cantidadInput.removeAttribute('max'); // Si no hay equipo seleccionado, quitar max
+                cantidadInput.value = 1; // Resetea a 1 o un valor por defecto
+            }
+        }
+
 
         function calculatePresupuesto() {
             // Define rates for easier modification (all in USD)
@@ -470,6 +589,7 @@
                 const cantidad = parseInt(cantidadInput ? cantidadInput.value : 0);
 
                 const equipo = allEquipos.find(e => e.id == equipoId);
+                // FIX: Acceder a equipo.cantidad para la lógica de presupuesto
                 if (equipo && cantidad > 0) {
                     totalValorEquipos += parseFloat(equipo.valor) * cantidad;
                 }
