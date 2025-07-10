@@ -26,14 +26,15 @@
             {{-- 2. Placeholder para filtros (mantener el espacio si es necesario) --}}
             <div></div>
 
-            {{-- 3. Botón "Generar Reporte" (sin funcionalidad por ahora) --}}
-            <a href="#"
+            {{-- 3. Botón "Generar Reporte" - MODIFICADO para PDF --}}
+            <a href="{{ route('contabilidad.libroDiario') }}"
+                {{-- ELIMINADO: target="_blank" para que se abra en la misma pestaña --}}
                 class="h-10 px-5 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-red-600 border border-transparent rounded-lg active:bg-red-600 hover:bg-red-700 focus:outline-none focus:shadow-outline-purple flex items-center justify-center gap-2"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                 </svg>
-                Generar Reporte
+                Generar Libro Diario PDF
             </a>
         </div>
 
