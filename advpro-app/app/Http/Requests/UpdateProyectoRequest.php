@@ -98,7 +98,7 @@ class UpdateProyectoRequest extends FormRequest
                             // Sumamos la cantidad que ya estaba asignada a este proyecto para no penalizarla dos veces.
                             // Luego restamos la cantidad solicitada. Si el resultado es negativo, significa que excede la cantidad.
                             if (($currentCantidadDisponibleEquipo + $assignedQuantityOnThisProject) < $value) {
-                                $fail("La cantidad solicitada de '{$equipo->nombre}' ({$value}) excede la cantidad disponible ({$equipo->cantidad}). Este equipo ya está en uso o no hay suficiente stock para proyectos 'En proceso'.");
+                                $fail("La cantidad solicitada de '{$equipo->nombre}' ({$value}) excede la cantidad disponible ({$equipo->cantidad}).");
                             }
                         }
                     }
