@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Models\Equipo; // Asegúrate de importar tu modelo Equipo
-use App\Models\Staff;  // Asegúrate de importar tu modelo Staff, para la clave foránea
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\Equipo;
+use App\Models\Staff; // Importa el modelo Staff para vincular responsable_id
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Equipo>
@@ -12,32 +12,35 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class EquipoFactory extends Factory
 {
     /**
-     * The name of the factory's corresponding model.
+     * El nombre del modelo correspondiente.
      *
      * @var string
      */
     protected $model = Equipo::class;
 
     /**
-     * Define the model's default state.
+     * Define el estado predeterminado del modelo.
      *
      * @return array<string, mixed>
      */
     public function definition(): array
     {
-       
-        $staffIds = Staff::pluck('id')->all();
+        $marcas = ['Dell', 'HP', 'Lenovo', 'Apple', 'Samsung', 'LG', 'Sony'];
+        $tiposEquipo = ['Portátil', 'Escritorio', 'Monitor', 'Impresora', 'Servidor', 'Smartphone'];
+        $estados = ['Usado', 'Nuevo', 'Reparado'];
+        $ubicaciones = ['Estudio A', 'Bodega', 'Estudio B', 'Estudio C'];
 
         return [
-            'nombre' => $this->faker->words(2, true), 
-            'descripcion' => $this->faker->sentence(), 
-            'marca' => $this->faker->company(), 
-            'tipo_equipo' => $this->faker->randomElement(['Fotografía', 'Video', 'Sonido', 'Lente', 'Iluminación', 'Estabilizador', 'Micrófono', 'Cámara', 'Monitor', 'Batería', 'Cable', 'Otro', 'Trípode' ]), 
-            'estado' => $this->faker->randomElement(['Nuevo', 'Usado', 'Reparado']), 
-            'ubicacion' => $this->faker->address(),
+            'nombre' => $this->faker->word() . ' ' . $this->faker->randomElement($tiposEquipo),
+            'descripcion' => $this->faker->sentence(),
+            'marca' => $this->faker->randomElement($marcas),
+            'tipo_equipo' => $this->faker->randomElement($tiposEquipo),
+            'estado' => $this->faker->randomElement($estados),
+            'ubicacion' => $this->faker->randomElement($ubicaciones),
             'cantidad' => $this->faker->numberBetween(1, 10),
-            'valor' => $this->faker->randomFloat(2, 10, 1000),
-            'responsable' => $this->faker->randomElement($staffIds) ?? null, // Asigna un ID de staff existente, o null si no hay staff
+            'valor' => $this->faker->randomFloat(2, 50, 1000), // Valor entre 100.00 y 5000.00
+            'responsable_id' => Staff::inRandomOrder()->first()->id ?? null, // Vincula a un miembro del personal existente
         ];
     }
 }
+
