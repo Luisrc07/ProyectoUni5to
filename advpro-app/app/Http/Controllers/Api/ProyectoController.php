@@ -12,6 +12,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\StoreProyectoRequest;
 use App\Http\Requests\UpdateProyectoRequest;
+use Log;
 
 class ProyectoController extends Controller
 {

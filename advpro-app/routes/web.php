@@ -104,8 +104,10 @@ Route::middleware('auth')->group(function () {
 
         // Datos para graficos en el dashboard
         Route::get('/dashboard/obtener-cuentas', [DashboardController::class, 'obtenerCuentasPorTipo'])->name('dashboard.obtener-cuentas');
-
+        // Ruta para obtener datos del gráfico
         Route::post('/dashboard/obtener-datos-grafico', [DashboardController::class, 'obtenerDatosGrafico'])->name('dashboard.obtener-datos-grafico');
+        
+       
 
 });
 
