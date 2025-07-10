@@ -63,6 +63,8 @@ class CuentaContableSeeder extends Seeder
                 $insertAccount('1104', 'Pagos Anticipados', 'activo', false, '1100');
                     $insertAccount('110401', 'Alquileres Pagados por Anticipado', 'activo', true, '1104');
                     $insertAccount('110402', 'Seguros Pagados por Anticipado', 'activo', true, '1104');
+                $insertAccount('1105', 'Impuestos como Activos', 'activo', false, '1100');
+                    $insertAccount('11051', 'IVA Credito Fiscal', 'activo', false, '1105');
             $insertAccount('1200', 'Activo No Circulante (Fijo)', 'activo', false, '1000');
                 $insertAccount('1201', 'Propiedad, Planta y Equipo', 'activo', false, '1200');
                     $insertAccount('120101', 'Equipo de Grabación (Cámaras, Micrófonos, Luces)', 'activo', true, '1201');
@@ -83,7 +85,7 @@ class CuentaContableSeeder extends Seeder
                     $insertAccount('210102', 'Acreedores Varios', 'pasivo', true, '2101');
                 $insertAccount('2102', 'Documentos por Pagar', 'pasivo', true, '2100');
                 $insertAccount('2103', 'Impuestos por Pagar', 'pasivo', false, '2100');
-                    $insertAccount('210301', 'IVA por Pagar', 'pasivo', true, '2103');
+                    $insertAccount('210301', 'IVA Debito Fiscal', 'pasivo', true, '2103');
                     $insertAccount('210302', 'Impuesto sobre la Renta por Pagar', 'pasivo', true, '2103');
                 $insertAccount('2104', 'Ingresos Diferidos', 'pasivo', false, '2100');
                     $insertAccount('210401', 'Anticipos de Clientes', 'pasivo', true, '2104');

@@ -95,8 +95,15 @@ Route::middleware('auth')->group(function () {
     Route::get('cuentas/siguiente-codigo', [ContabilidadController::class, 'getSiguienteCodigo'])->name('contabilidad.cuentas.siguienteCodigo');
 
 
+    // Datos para graficos en el dashboard
+    Route::get('/dashboard/obtener-cuentas', [DashboardController::class, 'obtenerCuentasPorTipo'])->name('dashboard.obtener-cuentas');
 
-        }); // Cierre correcto del grupo 'auth'
+    Route::post('/dashboard/obtener-datos-grafico', [DashboardController::class, 'obtenerDatosGrafico'])->name('dashboard.obtener-datos-grafico');
+
+
+
+
+}); // Cierre correcto del grupo 'auth'
 
 
 });

@@ -23,6 +23,9 @@ class DatabaseSeeder extends Seeder
        
         $this->call([
             StaffTableSeeder::class,
+            EquipoTableSeeder::class,
+            CuentaContableSeeder::class,
+
           
         ]);
     }
