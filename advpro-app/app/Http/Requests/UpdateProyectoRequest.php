@@ -61,38 +61,45 @@ class UpdateProyectoRequest extends FormRequest
                 'required_with:recursos_equipos.*.equipo_id',
                 'integer',
                 'min:1',
-                // Custom rule para validar el stock disponible del equipo en una actualización
+                // Custom rule para validar la cantidad disponible del equipo en una actualización
                 function ($attribute, $value, $fail) use ($proyecto) {
                     $index = explode('.', $attribute)[1]; // Obtiene el índice del array (e.g., 0, 1, 2)
                     $equipoId = $this->input("recursos_equipos.{$index}.equipo_id");
                     $pivotId = $this->input("recursos_equipos.{$index}.id"); // ID de la tabla pivote si existe
 
-                    if ($equipoId) {
-                        $equipo = Equipo::find($equipoId);
-                        if (!$equipo) {
-                            $fail("El equipo seleccionado no es válido.");
-                            return;
-                        }
+                    // Obtener el estado del proyecto desde la solicitud (si se está actualizando)
+                    // O usar el estado actual del proyecto si no se está enviando en la solicitud
+                    $proyectoEstado = $this->input('estado', $proyecto->estado);
 
-                        $currentStock = $equipo->stock;
-                        $assignedQuantityOnThisProject = 0;
-
-                        // Si estamos actualizando un registro existente en este proyecto
-                        if ($pivotId) {
-                            $existingPivot = ProyectoRecurso::find($pivotId);
-                            // Asegurarse de que el pivote pertenece al proyecto actual y es del tipo Equipo
-                            if ($existingPivot && $existingPivot->proyecto_id == $proyecto->id && $existingPivot->asignable_type == Equipo::class) {
-                                // Sumar la cantidad que ya estaba asignada a este proyecto de vuelta al stock "virtual"
-                                // para la validación, ya que estamos considerando reasignarla o cambiarla.
-                                $assignedQuantityOnThisProject = $existingPivot->cantidad;
+                    // Aplicar la validación de stock solo si el proyecto está "En proceso"
+                    if ($proyectoEstado === 'En proceso') {
+                        if ($equipoId) {
+                            $equipo = Equipo::find($equipoId);
+                            if (!$equipo) {
+                                $fail("El equipo seleccionado no es válido.");
+                                return;
                             }
-                        }
 
-                        // Calcular el stock disponible para esta operación de validación
-                        // Sumamos la cantidad que ya estaba asignada a este proyecto para no penalizarla dos veces.
-                        // Luego restamos la cantidad solicitada. Si el resultado es negativo, significa que excede el stock.
-                        if (($currentStock + $assignedQuantityOnThisProject) < $value) {
-                            $fail("La cantidad solicitada de '{$equipo->nombre}' ({$value}) excede el stock disponible ({$equipo->stock}).");
+                            $currentCantidadDisponibleEquipo = $equipo->cantidad;
+                            $assignedQuantityOnThisProject = 0;
+
+                            // Si estamos actualizando un registro existente en este proyecto
+                            if ($pivotId) {
+                                $existingPivot = ProyectoRecurso::find($pivotId);
+                                // Asegurarse de que el pivote pertenece al proyecto actual y es del tipo Equipo
+                                if ($existingPivot && $existingPivot->proyecto_id == $proyecto->id && $existingPivot->asignable_type == Equipo::class) {
+                                    // Sumar la cantidad que ya estaba asignada a este proyecto de vuelta a la "cantidad disponible virtual"
+                                    // para la validación, ya que estamos considerando reasignarla o cambiarla.
+                                    $assignedQuantityOnThisProject = $existingPivot->cantidad;
+                                }
+                            }
+
+                            // Calcular la cantidad disponible para esta operación de validación
+                            // Sumamos la cantidad que ya estaba asignada a este proyecto para no penalizarla dos veces.
+                            // Luego restamos la cantidad solicitada. Si el resultado es negativo, significa que excede la cantidad.
+                            if (($currentCantidadDisponibleEquipo + $assignedQuantityOnThisProject) < $value) {
+                                $fail("La cantidad solicitada de '{$equipo->nombre}' ({$value}) excede la cantidad disponible ({$equipo->cantidad}).");
+                            }
                         }
                     }
                 },
@@ -122,7 +129,7 @@ class UpdateProyectoRequest extends FormRequest
             'recursos_equipos.*.cantidad.required_with' => 'La cantidad es requerida para cada equipo asignado.',
             'recursos_equipos.*.cantidad.min' => 'La cantidad de equipo debe ser al menos :min.',
             'recursos_equipos.*.cantidad.integer' => 'La cantidad de equipo debe ser un número entero.',
-            // El mensaje para la validación de stock se maneja directamente en la regla personalizada.
+            // El mensaje para la validación de la cantidad se maneja directamente en la regla personalizada.
         ];
     }
 }

@@ -188,4 +188,34 @@
             </div>
         </div>
     </div>
+
+    {{-- Script para SweetAlert2 --}}
+    <script>
+        // Función para mostrar el modal de confirmación de eliminación con SweetAlert2
+        function showDeleteConfirmation(event, itemId) {
+            event.preventDefault(); // Previene la acción por defecto del botón
+
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: '¡No podrás revertir esto!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                // FIX: Usar customClass para aplicar estilos de Tailwind para modo claro/oscuro
+                customClass: {
+                    popup: 'bg-white dark:bg-gray-800', // Fondo del modal
+                    title: 'text-gray-900 dark:text-gray-100', // Título
+                    content: 'text-gray-700 dark:text-gray-300', // Contenido/texto principal
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Si el usuario confirma, envía el formulario de eliminación
+                    document.getElementById(`delete-form-${itemId}`).submit();
+                }
+            });
+        }
+    </script>
 </x-layouts.app>

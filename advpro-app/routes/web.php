@@ -27,8 +27,11 @@ Auth::routes();
 // 1. Ruta raíz para invitados: redirige a /login.
 //    Si ya estás autenticado, el middleware 'guest' te enviará a /home.
 Route::get('/', function () {
-    return redirect()->route('login');
-})->middleware('guest')->name('root');
+    return Auth::check()
+        ? redirect()->route('home')    // Si hay sesión, redirige al dashboard
+        : view('welcome');             // Si no hay sesión, muestra la vista welcome
+})->name('root');
+
 
 
 // 2. Rutas de autenticación (guest) - Solo accesibles para usuarios no autenticados
@@ -73,7 +76,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('equipos',   EquipoController::class);
 
 
-             //Contabilidad
+    //Contabilidad
     //(Se usa prefix para poder manejar mas funciones en el controlador
     //Fuera de los predefinidos, y el manejo de varios modelos.)
     Route::prefix('contabilidad')->group(function () {
@@ -99,12 +102,22 @@ Route::middleware('auth')->group(function () {
         Route::get('reportes/libro-mayor', [ContabilidadController::class, 'generarLibroMayor'])->name('contabilidad.libroMayor');
     
         Route::get('reportes/libro-mayor-pdf', [ContabilidadController::class, 'generarLibroMayorPDF'])->name('contabilidad.libroMayorPDF');
-    
+
         Route::get('reportes/balance-comprobacion', [ContabilidadController::class, 'generarBalanceComprobacion'])->name('contabilidad.balanceComprobacion');
     
         Route::get('reportes/balance-comprobacion-pdf', [ContabilidadController::class, 'generarBalanceComprobacionPDF'])->name('contabilidad.balanceComprobacionPDF');
-    
-    });
+
+        // Datos para graficos en el dashboard
+        Route::get('/dashboard/obtener-cuentas', [DashboardController::class, 'obtenerCuentasPorTipo'])->name('dashboard.obtener-cuentas');
+        // Ruta para obtener datos del gráfico
+        Route::post('/dashboard/obtener-datos-grafico', [DashboardController::class, 'obtenerDatosGrafico'])->name('dashboard.obtener-datos-grafico');
+
+        Route::delete('asientos/{asiento}', [ContabilidadController::class, 'destroy'])->name('contabilidad.destroy');
+        
+        
+       
+
+});
 
 
 });

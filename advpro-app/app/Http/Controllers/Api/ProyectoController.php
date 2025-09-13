@@ -12,6 +12,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\StoreProyectoRequest;
 use App\Http\Requests\UpdateProyectoRequest;
+use Illuminate\Support\Facades\Log; // Importar la fachada Log
 
 class ProyectoController extends Controller
 {
@@ -107,7 +108,31 @@ class ProyectoController extends Controller
         $equipos = Equipo::all();
         // Se pasa un proyecto nulo para que el formulario de creación sepa que no está en modo edición
         $proyecto = null;
-        return view('proyectos.create_project_page', compact('personal', 'equipos', 'proyecto'));
+
+        // Lógica para obtener personal/equipos asignados globalmente en proyectos 'En proceso'
+        $assignedPersonalGloballyInProcess = ProyectoRecurso::where('asignable_type', Staff::class)
+            ->whereHas('proyecto', function ($query) {
+                $query->where('estado', 'En proceso');
+            })
+            ->distinct('asignable_id')
+            ->pluck('asignable_id')
+            ->toArray();
+
+        $assignedEquiposGloballyInProcess = ProyectoRecurso::where('asignable_type', Equipo::class)
+            ->whereHas('proyecto', function ($query) {
+                $query->where('estado', 'En proceso');
+            })
+            ->distinct('asignable_id')
+            ->pluck('asignable_id')
+            ->toArray();
+
+        return view('proyectos.create_project_page', compact(
+            'personal',
+            'equipos',
+            'proyecto',
+            'assignedPersonalGloballyInProcess',
+            'assignedEquiposGloballyInProcess'
+        ));
     }
 
     /**
@@ -120,6 +145,25 @@ class ProyectoController extends Controller
     {
         // Los datos ya están validados por StoreProyectoRequest
         $validatedData = $request->validated();
+
+        // **INICIO: Lógica para validar que el responsable no esté en otro proyecto "En proceso"**
+        // Esta validación solo se aplica si el nuevo proyecto que se está creando es "En proceso"
+        if (isset($validatedData['responsable_id']) && $validatedData['estado'] === 'En proceso') {
+            $existingResponsibleProyecto = Proyecto::where('responsable_id', $validatedData['responsable_id'])
+                                                   ->where('estado', 'En proceso')
+                                                   ->first();
+            if ($existingResponsibleProyecto) {
+                return $request->wantsJson()
+                    ? response()->json(['message' => 'El personal seleccionado ya es responsable de otro proyecto en estado "En proceso".'], 409)
+                    : back()->withInput()->with('alert', [
+                        'type' => 'error',
+                        'title' => '¡Error!',
+                        'message' => 'El personal seleccionado ya es responsable de otro proyecto en estado "En proceso" (' . $existingResponsibleProyecto->nombre . ').',
+                        'button' => 'Aceptar'
+                    ]);
+            }
+        }
+        // **FIN: Lógica para validar que el responsable no esté en otro proyecto "En proceso"**
 
         DB::beginTransaction(); // Iniciar transacción
 
@@ -147,7 +191,7 @@ class ProyectoController extends Controller
             // y añadirá las nuevas.
             $proyecto->personalAsignado()->sync($requestedStaffIds);
 
-            // --- Lógica para equipos asignados y actualización de stock ---
+            // --- Lógica para equipos asignados y actualización de cantidad disponible ---
             $equiposRecursos = $validatedData['recursos_equipos'] ?? [];
             $syncEquipoData = [];
 
@@ -157,10 +201,12 @@ class ProyectoController extends Controller
                     $cantidad = $equipoData['cantidad'];
                     $syncEquipoData[$equipoId] = ['cantidad' => $cantidad];
 
-                    // Decrementar el stock del equipo (solo para nuevas asignaciones en 'store')
-                    $equipo = Equipo::find($equipoId);
-                    if ($equipo) {
-                        $equipo->decrement('stock', $cantidad);
+                    // Decrementar la cantidad disponible del equipo SOLO si el proyecto está "En proceso"
+                    if ($proyecto->estado === 'En proceso') {
+                        $equipo = Equipo::find($equipoId);
+                        if ($equipo) {
+                            $equipo->decrement('cantidad', $cantidad);
+                        }
                     }
                 }
             }
@@ -185,7 +231,7 @@ class ProyectoController extends Controller
         } catch (\Exception $e) {
             DB::rollBack(); // Revertir transacción en caso de error
             // Logear el error para depuración
-            \Log::error("Error al crear proyecto y recursos: " . $e->getMessage() . " en " . $e->getFile() . " línea " . $e->getLine());
+            Log::error("Error al crear proyecto y recursos: " . $e->getMessage() . " en " . $e->getFile() . " línea " . $e->getLine());
 
             return $request->wantsJson()
                 ? response()->json(['message' => 'Error al crear el proyecto y sus recursos.', 'error' => $e->getMessage()], 500)
@@ -230,9 +276,41 @@ class ProyectoController extends Controller
         // Cargar las relaciones de recursos para prellenar el formulario
         $proyecto->load(['personalAsignado', 'equiposAsignados']);
 
+        // Lógica para obtener personal/equipos asignados globalmente en proyectos 'En proceso'
+        // ¡EXCLUYENDO las asignaciones del PROYECTO ACTUAL!
+        $assignedPersonalGloballyInProcess = ProyectoRecurso::where('asignable_type', Staff::class)
+            ->where('proyecto_id', '!=', $proyecto->id) // Excluir las asignaciones del proyecto actual
+            ->whereHas('proyecto', function ($query) {
+                $query->where('estado', 'En proceso');
+            })
+            ->distinct('asignable_id')
+            ->pluck('asignable_id')
+            ->toArray();
+
+        $assignedEquiposGloballyInProcess = ProyectoRecurso::where('asignable_type', Equipo::class)
+            ->where('proyecto_id', '!=', $proyecto->id) // Excluir las asignaciones del proyecto actual
+            ->whereHas('proyecto', function ($query) {
+                $query->where('estado', 'En proceso');
+            })
+            ->distinct('asignable_id')
+            ->pluck('asignable_id')
+            ->toArray();
+
+        // También puedes pasar el estado y el ID del proyecto actual explícitamente para mayor claridad
+        $currentProjectStatus = $proyecto->estado;
+        $currentProjectId = $proyecto->id;
+
         return $request->wantsJson()
             ? response()->json($proyecto, 200)
-            : view('proyectos.edit', compact('proyecto', 'personal', 'equipos'));
+            : view('proyectos.edit', compact(
+                'proyecto',
+                'personal',
+                'equipos',
+                'assignedPersonalGloballyInProcess',
+                'assignedEquiposGloballyInProcess',
+                'currentProjectStatus',
+                'currentProjectId'
+            ));
     }
 
     /**
@@ -247,15 +325,39 @@ class ProyectoController extends Controller
         // Los datos ya están validados por UpdateProyectoRequest
         $validatedData = $request->validated();
 
+        // Guardar el estado actual de las asignaciones de equipo para calcular el cambio de cantidad
+        $previousEquipmentAssignments = $proyecto->equiposAsignados->pluck('pivot.cantidad', 'id')->toArray();
+        $previousProjectStatus = $proyecto->estado; // Guardar el estado anterior del proyecto
+
+        // Actualizar los datos del proyecto
+        $proyecto->update($validatedData);
+
+        // Obtener el nuevo estado del proyecto después de la actualización
+        $newProjectStatus = $proyecto->estado;
+
+        // **INICIO: Lógica para validar que el responsable no esté en otro proyecto "En proceso"**
+        // Esta validación solo se aplica si el proyecto que se está actualizando es "En proceso"
+        if (isset($validatedData['responsable_id']) && $newProjectStatus === 'En proceso') {
+            $existingResponsibleProyecto = Proyecto::where('responsable_id', $validatedData['responsable_id'])
+                                                   ->where('estado', 'En proceso')
+                                                   ->where('id', '!=', $proyecto->id) // Excluir el proyecto actual
+                                                   ->first();
+            if ($existingResponsibleProyecto) {
+                return $request->wantsJson()
+                    ? response()->json(['message' => 'El personal seleccionado ya es responsable de otro proyecto en estado "En proceso".'], 409)
+                    : back()->withInput()->with('alert', [
+                        'type' => 'error',
+                        'title' => '¡Error!',
+                        'message' => 'El personal seleccionado ya es responsable de otro proyecto en estado "En proceso" (' . $existingResponsibleProyecto->nombre . ').',
+                        'button' => 'Aceptar'
+                    ]);
+            }
+        }
+        // **FIN: Lógica para validar que el responsable no esté en otro proyecto "En proceso"**
+
         DB::beginTransaction(); // Iniciar transacción
 
         try {
-            // Guardar el estado actual de las asignaciones de equipo para calcular el cambio de stock
-            $previousEquipmentAssignments = $proyecto->equiposAsignados->pluck('pivot.cantidad', 'id')->toArray();
-
-            // Actualizar los datos del proyecto
-            $proyecto->update($validatedData);
-
             // --- Lógica para personal asignado ---
             // Obtener el ID del responsable del proyecto
             $responsableId = $validatedData['responsable_id'] ?? null;
@@ -274,7 +376,7 @@ class ProyectoController extends Controller
             // Sincronizar personal asignado
             $proyecto->personalAsignado()->sync($requestedStaffIds);
 
-            // --- Lógica para equipos asignados y actualización de stock ---
+            // --- Lógica para equipos asignados y actualización de cantidad disponible ---
             $equiposRecursos = $validatedData['recursos_equipos'] ?? [];
             $syncEquipoData = [];
 
@@ -289,37 +391,77 @@ class ProyectoController extends Controller
             // Sincronizar equipos asignados
             $proyecto->equiposAsignados()->sync($syncEquipoData);
 
-            // --- Ajustar el stock de equipos después de la sincronización ---
+            // --- Ajustar la cantidad disponible de equipos después de la sincronización ---
             $newAssignedEquipoIds = array_keys($syncEquipoData);
 
-            // Incrementar stock para equipos que fueron removidos del proyecto
-            foreach ($previousEquipmentAssignments as $equipoId => $oldQuantity) {
-                if (!in_array($equipoId, $newAssignedEquipoIds)) {
+            // LOGGING para depuración de stock
+            Log::debug("Update Project: {$proyecto->id} - Previous Status: {$previousProjectStatus}, New Status: {$newProjectStatus}");
+            Log::debug("Previous Equipment Assignments: " . json_encode($previousEquipmentAssignments));
+            Log::debug("New Equipment Assignments (sync data): " . json_encode($syncEquipoData));
+
+
+            // Incrementar cantidad disponible para equipos que fueron removidos del proyecto
+            // SOLO si el proyecto estaba "En proceso" ANTES de la actualización
+            if ($previousProjectStatus === 'En proceso') {
+                foreach ($previousEquipmentAssignments as $equipoId => $oldQuantity) {
+                    if (!in_array($equipoId, $newAssignedEquipoIds)) {
+                        $equipo = Equipo::find($equipoId);
+                        if ($equipo) {
+                            $equipo->increment('cantidad', $oldQuantity);
+                            Log::debug("Incremented '{$equipo->nombre}' by {$oldQuantity} (removed from 'En proceso' project). New quantity: {$equipo->cantidad}");
+                        }
+                    }
+                }
+            }
+
+            // Ajustar cantidad disponible para equipos que permanecen o son nuevos
+            // SOLO si el proyecto está "En proceso" DESPUÉS de la actualización
+            if ($newProjectStatus === 'En proceso') {
+                foreach ($syncEquipoData as $equipoId => $pivotData) {
+                    $newQuantity = $pivotData['cantidad'];
                     $equipo = Equipo::find($equipoId);
+
                     if ($equipo) {
-                        $equipo->increment('stock', $oldQuantity);
+                        $oldQuantity = $previousEquipmentAssignments[$equipoId] ?? 0; // 0 si es una nueva asignación
+
+                        if ($newQuantity > $oldQuantity) {
+                            // Si la cantidad aumentó, decrementar cantidad disponible
+                            $equipo->decrement('cantidad', $newQuantity - $oldQuantity);
+                            Log::debug("Decremented '{$equipo->nombre}' by " . ($newQuantity - $oldQuantity) . " (increased in 'En proceso' project). New quantity: {$equipo->cantidad}");
+                        } elseif ($newQuantity < $oldQuantity) {
+                            // Si la cantidad disminuyó, incrementar cantidad disponible
+                            $equipo->increment('cantidad', $oldQuantity - $newQuantity);
+                            Log::debug("Incremented '{$equipo->nombre}' by " . ($oldQuantity - $newQuantity) . " (decreased in 'En proceso' project). New quantity: {$equipo->cantidad}");
+                        }
+                        // Si newQuantity == oldQuantity, no se necesita cambio de stock para este ítem
+                    }
+                }
+            } else {
+                // Si el proyecto CAMBIA de "En proceso" a otro estado, debemos devolver todo el stock
+                // que estaba asignado a este proyecto.
+                if ($previousProjectStatus === 'En proceso' && $newProjectStatus !== 'En proceso') {
+                    foreach ($previousEquipmentAssignments as $equipoId => $oldQuantity) {
+                        $equipo = Equipo::find($equipoId);
+                        if ($equipo) {
+                            $equipo->increment('cantidad', $oldQuantity);
+                            Log::debug("Incremented '{$equipo->nombre}' by {$oldQuantity} (project changed from 'En proceso'). New quantity: {$equipo->cantidad}");
+                        }
+                    }
+                }
+                // Si el proyecto CAMBIA a "En proceso" desde otro estado, debemos decrementar el stock
+                // para las asignaciones actuales.
+                if ($previousProjectStatus !== 'En proceso' && $newProjectStatus === 'En proceso') {
+                    foreach ($syncEquipoData as $equipoId => $pivotData) {
+                        $newQuantity = $pivotData['cantidad'];
+                        $equipo = Equipo::find($equipoId);
+                        if ($equipo) {
+                            $equipo->decrement('cantidad', $newQuantity);
+                            Log::debug("Decremented '{$equipo->nombre}' by {$newQuantity} (project changed to 'En proceso'). New quantity: {$equipo->cantidad}");
+                        }
                     }
                 }
             }
 
-            // Ajustar stock para equipos que permanecen o son nuevos
-            foreach ($syncEquipoData as $equipoId => $pivotData) {
-                $newQuantity = $pivotData['cantidad'];
-                $equipo = Equipo::find($equipoId);
-
-                if ($equipo) {
-                    $oldQuantity = $previousEquipmentAssignments[$equipoId] ?? 0; // 0 si es una nueva asignación
-
-                    if ($newQuantity > $oldQuantity) {
-                        // Si la cantidad aumentó, decrementar stock
-                        $equipo->decrement('stock', $newQuantity - $oldQuantity);
-                    } elseif ($newQuantity < $oldQuantity) {
-                        // Si la cantidad disminuyó, incrementar stock
-                        $equipo->increment('stock', $oldQuantity - $newQuantity);
-                    }
-                    // Si newQuantity == oldQuantity, no se necesita cambio de stock para este ítem
-                }
-            }
 
             DB::commit(); // Confirmar transacción
 
@@ -337,7 +479,7 @@ class ProyectoController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack(); // Revertir transacción
-            \Log::error("Error al actualizar proyecto y recursos: " . $e->getMessage() . " en " . $e->getFile() . " línea " . $e->getLine());
+            Log::error("Error al actualizar proyecto y recursos: " . $e->getMessage() . " en " . $e->getFile() . " línea " . $e->getLine());
 
             return $request->wantsJson()
                 ? response()->json(['message' => 'Error al actualizar el proyecto y sus recursos.', 'error' => $e->getMessage()], 500)
@@ -360,14 +502,18 @@ class ProyectoController extends Controller
      */
     public function destroy(Proyecto $proyecto, Request $request)
     {
-        DB::beginTransaction(); // Iniciar transacción para asegurar la consistencia del stock
+        DB::beginTransaction(); // Iniciar transacción para asegurar la consistencia de la cantidad disponible
 
         try {
-            // Antes de eliminar el proyecto, devolver el stock de los equipos asignados
-            foreach ($proyecto->equiposAsignados as $equipoAsignado) {
-                $equipo = Equipo::find($equipoAsignado->id);
-                if ($equipo) {
-                    $equipo->increment('stock', $equipoAsignado->pivot->cantidad);
+            // Antes de eliminar el proyecto, devolver la cantidad disponible de los equipos asignados
+            // SOLO si el proyecto estaba "En proceso"
+            if ($proyecto->estado === 'En proceso') {
+                foreach ($proyecto->equiposAsignados as $equipoAsignado) {
+                    $equipo = Equipo::find($equipoAsignado->id);
+                    if ($equipo) {
+                        $equipo->increment('cantidad', $equipoAsignado->pivot->cantidad);
+                        Log::debug("Incremented '{$equipo->nombre}' by {$equipoAsignado->pivot->cantidad} (project deleted from 'En proceso'). New quantity: {$equipo->cantidad}");
+                    }
                 }
             }
 
@@ -385,7 +531,7 @@ class ProyectoController extends Controller
                 ]);
         } catch (\Exception $e) {
             DB::rollBack(); // Revertir transacción
-            \Log::error("Error al eliminar proyecto: " . $e->getMessage() . " en " . $e->getFile() . " línea " . $e->getLine());
+            Log::error("Error al eliminar proyecto: " . $e->getMessage() . " en " . $e->getFile() . " línea " . $e->getLine());
 
             return $request->wantsJson()
                 ? response()->json(['message' => 'Error al eliminar el proyecto.', 'error' => $e->getMessage()], 500)

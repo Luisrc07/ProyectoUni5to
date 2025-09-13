@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api; // Asegúrate de que el namespace sea correcto si está en Api
+namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Asiento;
@@ -21,15 +21,10 @@ class ContabilidadController extends Controller
         // 1. Iniciar la consulta para los asientos
         $queryAsientos = Asiento::with('detalles');
 
-        // 2. Aplicar filtros si existen en la request (ejemplos, puedes expandirlos)
-        // Filtrar por fecha (rango)
-        if ($request->filled('fecha_inicio')) {
-            $queryAsientos->where('fecha', '>=', $request->fecha_inicio);
-        }
-        if ($request->filled('fecha_fin')) {
-            $queryAsientos->where('fecha', '<=', $request->fecha_fin);
-        }
+        // Aplicar filtros de fecha directamente en el index
+        $queryAsientos = $this->applyDateFilters($queryAsientos, $request);
 
+        // 2. Aplicar otros filtros si existen en la request (ejemplos, puedes expandirlos)
         // Filtrar por descripción (búsqueda parcial)
         if ($request->filled('descripcion')) {
             $queryAsientos->where('descripcion', 'like', '%' . $request->descripcion . '%');
@@ -39,7 +34,7 @@ class ContabilidadController extends Controller
         $queryAsientos->latest();
 
         // 3. Ejecutar la consulta y paginar los resultados
-        $asientos = $queryAsientos->paginate(5)->appends($request->query());
+        $asientos = $queryAsientos->paginate(10)->appends($request->query());
 
         // Cuentas que pueden recibir movimientos (hojas del árbol contable)
         $movimientoCuentas = CuentaContable::whereDoesntHave('hijas')->orderBy('codigo')->get();
@@ -247,17 +242,52 @@ class ContabilidadController extends Controller
         return $accountReferences;
     }
 
-    public function generarLibroDiario(Request $request)
+    /**
+     * Genera un mapeo de ID de asiento a su número secuencial en el reporte.
+     *
+     * @param \Illuminate\Database\Eloquent\Collection $asientos
+     * @return array [asiento_id => sequential_number]
+     */
+    protected function getAsientoSequentialNumbers($asientos)
     {
-        $query = Asiento::with('detalles.cuentaContable')
-                        ->orderBy('fecha', 'asc');
+        $sequentialNumbers = [];
+        $counter = 1;
+        foreach ($asientos as $asiento) {
+            $sequentialNumbers[$asiento->id_asiento] = $counter++;
+        }
+        return $sequentialNumbers;
+    }
 
+    /**
+     * Aplica filtros de fecha a una consulta de asientos.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    protected function applyDateFilters($query, Request $request)
+    {
         if ($request->filled('fecha_inicio')) {
             $query->where('fecha', '>=', $request->fecha_inicio);
         }
         if ($request->filled('fecha_fin')) {
             $query->where('fecha', '<=', $request->fecha_fin);
         }
+        return $query;
+    }
+
+    /**
+     * Genera la vista HTML del Libro Diario con los asientos y las referencias de cuenta.
+     *
+     * @param Request $request La solicitud HTTP, que puede contener filtros de fecha.
+     * @return \Illuminate\View\View
+     */
+    public function generarLibroDiario(Request $request)
+    {
+        $query = Asiento::with('detalles.cuentaContable')
+                        ->orderBy('fecha', 'asc');
+
+        $query = $this->applyDateFilters($query, $request); // Aplicar filtro de fecha
 
         $asientos = $query->get();
         $accountReferences = $this->getUniqueAccountReferences($asientos); // Obtener referencias únicas
@@ -265,17 +295,18 @@ class ContabilidadController extends Controller
         return view('contabilidad.libro-diario', compact('asientos', 'accountReferences'));
     }
 
+    /**
+     * Genera el reporte PDF del Libro Diario y lo sirve para descarga/visualización.
+     *
+     * @param Request $request La solicitud HTTP, que puede contener filtros de fecha.
+     * @return \Illuminate\Http\Response
+     */
     public function generarLibroDiarioPDF(Request $request)
     {
         $query = Asiento::with('detalles.cuentaContable')
                         ->orderBy('fecha', 'asc');
 
-        if ($request->filled('fecha_inicio')) {
-            $query->where('fecha', '>=', $request->fecha_inicio);
-        }
-        if ($request->filled('fecha_fin')) {
-            $query->where('fecha', '<=', $request->fecha_fin);
-        }
+        $query = $this->applyDateFilters($query, $request); // Aplicar filtro de fecha
 
         $asientos = $query->get();
         $accountReferences = $this->getUniqueAccountReferences($asientos); // Obtener referencias únicas
@@ -287,16 +318,13 @@ class ContabilidadController extends Controller
         return $pdf->stream('reporte_libro_diario_' . date('Y-m-d') . '.pdf');
     }
 
-    protected function getAsientoSequentialNumbers($asientos)
-    {
-        $sequentialNumbers = [];
-        $counter = 1;
-        foreach ($asientos as $asiento) {
-            $sequentialNumbers[$asiento->id_asiento] = $counter++;
-        }
-        return $sequentialNumbers;
-    }
-
+    /**
+     * Genera la vista HTML del Libro Mayor.
+     * Procesa los asientos para agrupar los movimientos por cuenta y calcular saldos.
+     *
+     * @param Request $request La solicitud HTTP, que puede contener filtros de fecha.
+     * @return \Illuminate\View\View
+     */
     public function generarLibroMayor(Request $request)
     {
         // Obtener todos los asientos con sus detalles y cuentas contables
@@ -304,12 +332,7 @@ class ContabilidadController extends Controller
                                 ->orderBy('fecha', 'asc')
                                 ->orderBy('id_asiento', 'asc'); // Ordenar por fecha y luego por ID de asiento
 
-        if ($request->filled('fecha_inicio')) {
-            $queryAsientos->where('fecha', '>=', $request->fecha_inicio);
-        }
-        if ($request->filled('fecha_fin')) {
-            $queryAsientos->where('fecha', '<=', $request->fecha_fin);
-        }
+        $queryAsientos = $this->applyDateFilters($queryAsientos, $request); // Aplicar filtro de fecha
 
         $asientos = $queryAsientos->get();
 
@@ -384,6 +407,13 @@ class ContabilidadController extends Controller
         return view('contabilidad.libro-mayor', compact('sortedLibroMayorData'));
     }
 
+    /**
+     * Genera el reporte PDF del Libro Mayor.
+     * La lógica es la misma que generarLibroMayor, pero renderiza a PDF.
+     *
+     * @param Request $request La solicitud HTTP, que puede contener filtros de fecha.
+     * @return \Illuminate\Http\Response
+     */
     public function generarLibroMayorPDF(Request $request)
     {
         // Obtener todos los asientos con sus detalles y cuentas contables
@@ -391,12 +421,7 @@ class ContabilidadController extends Controller
                                 ->orderBy('fecha', 'asc')
                                 ->orderBy('id_asiento', 'asc');
 
-        if ($request->filled('fecha_inicio')) {
-            $queryAsientos->where('fecha', '>=', $request->fecha_inicio);
-        }
-        if ($request->filled('fecha_fin')) {
-            $queryAsientos->where('fecha', '<=', $request->fecha_fin);
-        }
+        $queryAsientos = $this->applyDateFilters($queryAsientos, $request); // Aplicar filtro de fecha
 
         $asientos = $queryAsientos->get();
 
@@ -463,25 +488,23 @@ class ContabilidadController extends Controller
         return $pdf->stream('reporte_libro_mayor_' . date('Y-m-d') . '.pdf');
     }
 
-public function generarBalanceComprobacion(Request $request)
+    /**
+     * Genera la vista HTML del Balance de Comprobación.
+     * Calcula los totales de Debe y Haber y el saldo final para cada cuenta.
+     * Solo muestra las cuentas que tienen movimientos registrados y las ordena por tipo y código.
+     *
+     * @param Request $request La solicitud HTTP (puede usarse para filtros de fecha en el futuro).
+     * @return \Illuminate\View\View
+     */
+    public function generarBalanceComprobacion(Request $request)
     {
         // Obtener todos los detalles de asiento para identificar las cuentas con movimientos
         $queryDetalles = DetalleAsiento::with('cuentaContable', 'asientoContable');
 
-        // Aquí podrías añadir lógica de filtrado por fecha si es necesario para el balance
-        // Ejemplo:
-        /*
-        if ($request->filled('fecha_inicio')) {
-            $queryDetalles->whereHas('asientoContable', function ($q) use ($request) {
-                $q->where('fecha', '>=', $request->fecha_inicio);
-            });
-        }
-        if ($request->filled('fecha_fin')) {
-            $queryDetalles->whereHas('asientoContable', function ($q) use ($request) {
-                $q->where('fecha', '<=', $request->fecha_fin);
-            });
-        }
-        */
+        // Aplicar filtro de fecha a los asientos relacionados con los detalles
+        $queryDetalles->whereHas('asientoContable', function ($q) use ($request) {
+            $this->applyDateFilters($q, $request); // Aplicar filtro de fecha dentro del whereHas
+        });
 
         $detallesConMovimientos = $queryDetalles->get();
 
@@ -573,25 +596,22 @@ public function generarBalanceComprobacion(Request $request)
         ));
     }
 
+    /**
+     * Genera el reporte PDF del Balance de Comprobación.
+     * La lógica es la misma que generarBalanceComprobacion, pero renderiza a PDF.
+     *
+     * @param Request $request La solicitud HTTP (puede usarse para filtros de fecha en el futuro).
+     * @return \Illuminate\Http\Response
+     */
     public function generarBalanceComprobacionPDF(Request $request)
     {
         // Obtener todos los detalles de asiento para identificar las cuentas con movimientos
         $queryDetalles = DetalleAsiento::with('cuentaContable', 'asientoContable');
 
-        // Aquí podrías añadir lógica de filtrado por fecha si es necesario para el balance
-        // Ejemplo:
-        /*
-        if ($request->filled('fecha_inicio')) {
-            $queryDetalles->whereHas('asientoContable', function ($q) use ($request) {
-                $q->where('fecha', '>=', $request->fecha_inicio);
-            });
-        }
-        if ($request->filled('fecha_fin')) {
-            $queryDetalles->whereHas('asientoContable', function ($q) use ($request) {
-                $q->where('fecha', '<=', $request->fecha_fin);
-            });
-        }
-        */
+        // Aplicar filtro de fecha a los asientos relacionados con los detalles
+        $queryDetalles->whereHas('asientoContable', function ($q) use ($request) {
+            $this->applyDateFilters($q, $request); // Aplicar filtro de fecha dentro del whereHas
+        });
 
         $detallesConMovimientos = $queryDetalles->get();
 
@@ -671,7 +691,7 @@ public function generarBalanceComprobacion(Request $request)
             $granTotalMovimientosDebe += $totalDebeCuenta;
             $granTotalMovimientosHaber += $totalHaberCuenta;
             $granTotalSaldoDebe += $saldoFinalDebe;
-            $granTotalSaldoHaber += $saldoFinalHaber; // ¡Esta es la línea corregida!
+            $granTotalSaldoHaber += $saldoFinalHaber;
         }
 
         // Cargar la vista específica para el PDF con los datos.
@@ -685,5 +705,27 @@ public function generarBalanceComprobacion(Request $request)
 
         // Servir el PDF al navegador para descarga o visualización.
         return $pdf->stream('reporte_balance_comprobacion_' . date('Y-m-d') . '.pdf');
+    }
+
+    public function destroy(Asiento $asiento)
+    {
+        Log::info('ContabilidadController@destroy - Eliminando asiento:', ['id_asiento' => $asiento->id_asiento]);
+        try {
+            DB::beginTransaction();
+
+            $asiento->detalles()->delete();
+
+            // Eliminar el asiento
+            $asiento->delete();
+
+            DB::commit();
+
+            return redirect()->route('contabilidad.index')->with('success', 'Asiento eliminado exitosamente.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al eliminar el asiento contable: ' . $e->getMessage() . ' en la línea ' . $e->getLine());
+            return redirect()->back()->withErrors(['error' => 'Error interno al eliminar el asiento: ' . $e->getMessage()]);
+        }
     }
 }

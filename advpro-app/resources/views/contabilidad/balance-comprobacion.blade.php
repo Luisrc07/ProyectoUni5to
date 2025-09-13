@@ -6,7 +6,7 @@
         </h2>
         <div>
             {{-- Botón para Imprimir PDF del Balance de Comprobación (no funcional aún) --}}
-            <a href="{{ route('contabilidad.balanceComprobacionPDF') }}"
+            <a href="{{ route('contabilidad.balanceComprobacionPDF', request()->query()) }}"
                 target="_blank" {{-- Abrir en nueva pestaña para el PDF --}}
                 class="h-10 px-5 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-gray-700 border border-transparent rounded-lg active:bg-gray-700 hover:bg-gray-800 focus:outline-none focus:shadow-outline-gray flex items-center justify-center gap-2"
             >

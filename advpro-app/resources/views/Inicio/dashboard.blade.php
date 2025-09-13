@@ -1,5 +1,16 @@
 <x-layouts.app>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- En el <head> o antes de cerrar </body> -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    
+    
+
+    
     <!-- Usa esta sintaxis (sin "path:") -->
     <script src="{{ asset('js/charts-bars.js') }}" defer></script>
     <script src="{{ asset('js/charts-pie.js') }}" defer></script>
@@ -9,6 +20,7 @@
     <h2 class="my-6 text-2xl font-semibold text-gray-700 dark:text-gray-200">
         Dashboard
     </h2>
+    
     <div class="grid gap-6 mb-8 md:grid-cols-2 xl:grid-cols-4">
         <!-- Card -->
         <div
@@ -120,89 +132,331 @@
         </div>
     </div>
 
-    <div class="grid gap-6 mb-8 md:grid-cols-2">
+    <h2 class="my-6 text-2xl font-semibold text-gray-700 dark:text-gray-200">
+        Graficos y Estadísticas
+    </h2>
 
-        <!-- Lines chart -->
-        <div
-        class="min-w-0 p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800"
-        >
-        <h4 class="mb-4 font-semibold text-gray-800 dark:text-gray-300">
-            Ingresos de Contratos por Mes
-        </h4>
-        <canvas id="line"></canvas>
-        <div
-            class="flex justify-center mt-4 space-x-3 text-sm text-gray-600 dark:text-gray-400"
-        >
-            <!-- Chart legend -->
-            <div class="flex items-center">
-            <span
-                class="inline-block w-3 h-3 mr-1 bg-teal-500 rounded-full"
-            ></span>
-            <span>Organic</span>
-            </div>
-            <div class="flex items-center">
-            <span
-                class="inline-block w-3 h-3 mr-1 bg-purple-600 rounded-full"
-            ></span>
-            <span>Paid</span>
-            </div>
+    <div class="flex items-end space-x-4 mb-4">
+        
+        {{-- Filtro por Tipo de Documento --}}
+        <div class="flex flex-col">
+            <label for="fuente_datos" class="text-xs font-bold text-gray-400 dark:text-gray-400 mb-1 uppercase">Fuente de Datos</label>
+            <select name="fuente_datos" id="fuente_datos" class="block w-64 h-10 px-4 py-2 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray rounded-lg border-2 border-gray-700 shadow-inner">
+                <option value="" selected disabled>Seleccione una fuente</option>
+                <optgroup label="Producción">
+                    <option value="contratos">Contratos</option>
+                    <option value="clientes">Clientes</option>
+                </optgroup>
+                <optgroup label="Contables">
+                    <option value="activo">Activos</option>
+                    <option value="pasivo">Pasivos</option>
+                    <option value="ingreso">Ingresos</option>
+                    <option value="egreso">Egresos</option>
+                    <option value="patrimonio">Patrimonio</option>
+                </optgroup>
+            </select>
         </div>
+
+        <div class="flex flex-col">
+            <label for="datos_graficar" class="text-xs font-bold text-gray-400 dark:text-gray-400 mb-1 uppercase">Datos a Graficar</label>
+            <select name="datos_graficar" id="datos_graficar" class="block w-64 h-10 px-4 py-2 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray rounded-lg border-2 border-gray-700 shadow-inner" disabled>
+                <option value="">Seleccione primero una fuente</option>
+            </select>
         </div>
-        <!-- Bars chart -->
-        <div class="min-w-0 p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800">
-    <h4 class="mb-4 font-semibold text-gray-800 dark:text-gray-300">
-        Contratos Realizados Por Mes ({{ $yearActual }})
-    </h4>
-    <canvas 
-      id="bars"
-    data-labels='@json($mesesGrafico)'
-    data-data='@json($valoresGrafico)'
-    ></canvas>
-    <div class="flex justify-center mt-4 space-x-3 text-sm text-gray-600 dark:text-gray-400">
-        <div class="flex items-center">
-            <span class="inline-block w-3 h-3 mr-1 bg-teal-500 rounded-full"></span>
-            <span>Contratos por Mes</span>
+
+        {{-- Filtro por Tipo de Gráfico --}}
+        <div class="flex flex-col ">
+            <label for="tipo-grafico" class="text-xs font-bold text-gray-400 dark:text-gray-400 mb-1 uppercase">Tipo de Grafico</label>
+            <select name="tipo-grafico" id="tipo-grafico"
+                class="block w-64 h-10 px-4 py-2 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray rounded-lg border-2 border-gray-700 shadow-inner"
+            >
+                <option value="" selected disabled>Seleccionar</option>
+                <option value="pie">Pastel</option>
+                <option value="line">Líneas</option>
+                <option value="bar">Barras</option>
+            </select>
         </div>
+
+        {{-- 3. Botón para Aplicar Filtros (con las clases del componente) --}}
+        <button id="btn-graficar" class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:bg-purple-500 dark:hover:bg-purple-600 dark:focus:ring-purple-800">
+            Generar Gráfico
+        </button>
+        <button id="btn-exportar-pdf" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 ml-2">
+            <i class="fas fa-file-pdf mr-2"></i>Exportar a PDF
+        </button>
     </div>
-</div>
 
-<!-- Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('bars');
-    if (ctx) {
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: JSON.parse(ctx.dataset.labels),
-                datasets: [{
-                    label: 'Contratos',
-                    data: JSON.parse(ctx.dataset.data),
-                    backgroundColor: '#0694a2',
-                    borderColor: '#047481',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false
+    <script>
+            $(document).ready(function() {
+                $('#fuente_datos').change(function() {
+                    const valorSeleccionado = $(this).val();
+                    const $selectDatos = $('#datos_graficar');
+                    
+                    // Resetear el select
+                    $selectDatos.prop('disabled', false).html('<option value="">Cargando...</option>');
+                    
+                    // Definir opciones de contabilidad
+                    const opcionesContabilidad = ['activo', 'pasivo', 'ingreso', 'egreso','patrimonio'];
+                    
+                    if (!valorSeleccionado) {
+                        $selectDatos.prop('disabled', true).html('<option value="">Seleccione primero una fuente</option>');
+                        return;
                     }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0
+                    
+                    // Si no es contabilidad, mostrar solo "Todos"
+                    if (!opcionesContabilidad.includes(valorSeleccionado)) {
+                        $selectDatos.html('<option value="todos">Todos</option>');
+                        return;
+                    }
+                    
+                    // Hacer petición AJAX solo para contabilidad
+                    $.ajax({
+                        url: "{{ route('dashboard.obtener-cuentas') }}",
+                        type: "GET",
+                        data: { tipo: valorSeleccionado },
+                        success: function(response) {
+                            let options = '<option value=""  select>Seleccione una cuenta</option>';
+                            
+                            
+                            response.forEach(cuenta => {
+                                options += `<option value="${cuenta.id_cuenta}">${cuenta.codigo} - ${cuenta.nombre}</option>`;
+                            });
+                            
+                            $selectDatos.html(options);
+                        },
+                        error: function() {
+                            $selectDatos.html('<option value="">Error al cargar datos</option>');
+                        }
+                    });
+                });
+            });
+
+            let chartInstance = null;
+
+            function generarGrafico() {
+                const cuentaId = $('#datos_graficar').val();
+                const tipoGrafico = $('#tipo-grafico').val();
+                
+                if (!cuentaId) {
+                    alert('Por favor seleccione una cuenta');
+                    return;
+                }
+
+                // Mostrar loading usando tu estructura
+                $('#grafico-container').html(`
+                    <div class="min-w-0 p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800">
+                        <div class="flex justify-center py-10">
+                            <i class="fas fa-spinner fa-spin fa-2x text-purple-600 dark:text-purple-400"></i>
+                        </div>
+                    </div>
+                `);
+
+                $.ajax({
+                    url: "{{ route('dashboard.obtener-datos-grafico') }}",
+                    type: "POST",
+                    data: {
+                        cuenta_id: cuentaId,
+                        tipo_grafico: tipoGrafico,
+                        _token: "{{ csrf_token() }}"
+                    },
+                    success: function(response) {
+                        renderizarGrafico(response);
+                    },
+                    error: function(xhr) {
+                        console.error(xhr.responseText);
+                        $('#grafico-container').html(`
+                            <div class="min-w-0 p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800">
+                                <div class="text-red-500 dark:text-red-400 text-center py-4">
+                                    Error al generar el gráfico
+                                </div>
+                            </div>
+                        `);
+                    }
+                });
+            }
+
+            function renderizarGrafico(data) {
+                // Destruir gráfico anterior si existe
+                if (chartInstance) {
+                    chartInstance.destroy();
+                }
+
+                // Crear contenedor con tu estructura
+                const html = `
+                    <div class="min-w-0 p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800">
+                        <h4 class="mb-4 font-semibold text-gray-800 dark:text-gray-300">
+                            ${data.titulo}
+                        </h4>
+                        <canvas id="dynamic-chart"></canvas>
+                        <div class="flex justify-center mt-4 space-x-3 text-sm text-gray-600 dark:text-gray-400" id="chart-legend">
+                            <!-- La leyenda se generará dinámicamente -->
+                        </div>
+                    </div>
+                `;
+                
+                $('#grafico-container').html(html);
+
+                // Configuración común para todos los gráficos
+                const commonOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false, // Usaremos nuestra propia leyenda
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw.toLocaleString()}`;
+                                }
+                            }
                         }
                     }
+                };
+
+                // Configurar colores según tu esquema
+                const colors = {
+                    debe: {
+                        bg: 'rgba(79, 70, 229, 0.7)', // purple-600
+                        border: 'rgba(79, 70, 229, 1)'
+                    },
+                    haber: {
+                        bg: 'rgba(20, 184, 166, 0.7)', // teal-500
+                        border: 'rgba(20, 184, 166, 1)'
+                    }
+                };
+
+                // Preparar datasets según tipo de gráfico
+                let datasets = [];
+                if (data.tipo_grafico === 'pie' || data.tipo_grafico === 'doughnut') {
+                    datasets = [
+                        {
+                            data: [data.total_debe, data.total_haber],
+                            backgroundColor: [colors.debe.bg, colors.haber.bg],
+                            borderColor: [colors.debe.border, colors.haber.border],
+                            borderWidth: 1
+                        }
+                    ];
+                } else {
+                    datasets = [
+                        {
+                            label: 'Debe',
+                            data: data.debeData,
+                            backgroundColor: colors.debe.bg,
+                            borderColor: colors.debe.border,
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Haber',
+                            data: data.haberData,
+                            backgroundColor: colors.haber.bg,
+                            borderColor: colors.haber.border,
+                            borderWidth: 1
+                        }
+                    ];
                 }
+
+                // Crear el gráfico
+                const ctx = document.getElementById('dynamic-chart').getContext('2d');
+                chartInstance = new Chart(ctx, {
+                    type: data.tipo_grafico,
+                    data: {
+                        labels: data.labels,
+                        datasets: datasets
+                    },
+                    options: commonOptions
+                });
+
+                // Generar leyenda personalizada
+                const legendHtml = `
+                    <div class="flex items-center">
+                        <span class="inline-block w-3 h-3 mr-1 rounded-full" style="background-color: ${colors.debe.bg}"></span>
+                        <span>Debe</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="inline-block w-3 h-3 mr-1 rounded-full" style="background-color: ${colors.haber.bg}"></span>
+                        <span>Haber</span>
+                    </div>
+                `;
+                $('#chart-legend').html(legendHtml);
             }
-        });
+
+            // Asignar evento al botón
+           $('#btn-graficar').click(function() {
+                generarGrafico();
+            });
+
+            document.getElementById('btn-exportar-pdf').addEventListener('click', async function() {
+    // Configuración inicial
+    const element = document.getElementById('grafico-container');
+    const { jsPDF } = window.jspdf;
+    
+    // Capturar el contenedor
+    const canvas = await html2canvas(element, {
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        scrollY: -window.scrollY
+    });
+
+    // Crear PDF horizontal
+    const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm'
+    });
+
+    // Dimensiones
+    const pageWidth = 277;  // Ancho útil (297 - 20mm márgenes)
+    const pageHeight = 160; // Altura para gráfico
+    
+    // Calcular dimensiones manteniendo proporción
+    const imgRatio = canvas.width / canvas.height;
+    let imgWidth = pageWidth;
+    let imgHeight = imgWidth / imgRatio;
+    
+    if (imgHeight > pageHeight) {
+        imgHeight = pageHeight;
+        imgWidth = imgHeight * imgRatio;
     }
+
+    // Posiciones (solo gráfico centrado)
+    const xPos = (297 - imgWidth) / 2; // Centrado horizontal
+    const yPos = 25; // Posición original para gráfico
+
+    // -- Títulos y pie (posición original) --
+    pdf.setFontSize(18);
+    pdf.setTextColor(30, 30, 30);
+    pdf.text('Reporte Grafico Gerencial', 20, 15); // Izquierda
+    
+    pdf.setFontSize(12);
+    pdf.text(`Datos: ${document.querySelector('#grafico-container h4').innerText}`, 20, 20);
+    pdf.text(`Generado: ${new Date().toLocaleDateString()}`, 250, 20, { align: 'right' });
+    
+    // Gráfico (centrado)
+    pdf.addImage(
+        canvas.toDataURL('image/png'), 
+        'PNG', 
+        xPos, // Centrado horizontal
+        yPos, // Posición vertical original
+        imgWidth, 
+        imgHeight
+    );
+
+    // Pie de página (original)
+    pdf.setFontSize(10);
+    pdf.setTextColor(100);
+    pdf.text('© AudioVisualPro', 20, 190);
+
+    // Descargar
+    pdf.save(`reporte_contable_${new Date().toLocaleDateString()}.pdf`);
 });
-</script>
+    </script>
+
+    <div id="grafico-container" class="mt-6">
+        <!-- El gráfico se insertará aquí manteniendo tus estilos -->
     </div>
+
+
+
+    
 </x-layouts.app>   

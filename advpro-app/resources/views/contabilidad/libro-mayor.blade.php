@@ -3,10 +3,15 @@
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200">
             Reporte - Libro Mayor 📚
+            @if(request('fecha_inicio') && request('fecha_fin'))
+                <span class="text-sm font-normal text-gray-500 dark:text-gray-400">
+                    (Desde {{ \Carbon\Carbon::parse(request('fecha_inicio'))->format('d/m/Y') }} hasta {{ \Carbon\Carbon::parse(request('fecha_fin'))->format('d/m/Y') }})
+                </span>
+            @endif
         </h2>
         <div class="flex flex-col space-y-2"> {{-- Contenedor para los botones --}}
             {{-- Botón para Imprimir PDF del Libro Mayor --}}
-            <a href="{{ route('contabilidad.libroMayorPDF') }}"
+            <a href="{{ route('contabilidad.libroMayorPDF', request()->query()) }}"
                 target="_blank" {{-- Abrir en nueva pestaña para el PDF --}}
                 class="h-10 px-5 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-gray-700 border border-transparent rounded-lg active:bg-gray-700 hover:bg-gray-800 focus:outline-none focus:shadow-outline-gray flex items-center justify-center gap-2"
             >
@@ -17,7 +22,7 @@
             </a>
 
             {{-- NUEVO BOTÓN: Enlace al Balance de Comprobación --}}
-            <a href="{{ route('contabilidad.balanceComprobacion') }}"
+            <a href="{{ route('contabilidad.balanceComprobacion', request()->query()) }}"
                 class="h-10 px-5 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-blue-600 border border-transparent rounded-lg active:bg-blue-600 hover:bg-blue-700 focus:outline-none focus:shadow-outline-blue flex items-center justify-center gap-2"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -74,7 +79,7 @@
                     </table>
                 </div>
             @empty
-                <p class="px-4 py-10 text-center text-gray-500 dark:text-gray-400">No hay cuentas con movimientos para mostrar en el Libro Mayor.</p>
+                <p class="px-4 py-10 text-center text-gray-500 dark:text-gray-400">No hay cuentas con movimientos para mostrar en el Libro Mayor para el rango de fechas seleccionado.</p>
             @endforelse
         </div>
     </div>

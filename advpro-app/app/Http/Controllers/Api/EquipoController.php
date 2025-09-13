@@ -16,62 +16,6 @@ class EquipoController extends Controller
      */
     public function index(Request $request)
     {
-        // 1. Iniciar la consulta, cargando la relación 'responsableStaff'
-        $query = Equipo::with('responsableStaff');
-
-        // 2. Aplicar filtros si existen en la request
-        // Filtrar por estado
-        if ($request->filled('estado') && in_array($request->estado, ['Nuevo', 'Usado', 'Reparado'])) {
-            $query->where('estado', $request->estado);
-        }
-        
-        // Filtrar por tipo de equipo
-        if ($request->filled('tipo_equipo')) {
-            $query->where('tipo_equipo', $request->tipo_equipo);
-        }
-
-        // --- FILTRO POR RESPONSABLE ---
-        if ($request->filled('responsable')) {
-            $query->where('responsable', $request->responsable);
-        }
-        // -------------------------------------
-
-        // Filtrar por fecha (creación)
-        if ($request->filled('fecha_creacion')) {
-            if ($request->fecha_creacion === 'nuevos') {
-                $query->orderBy('created_at', 'desc'); // Ordenar por los más nuevos
-            } elseif ($request->fecha_creacion === 'viejos') {
-                $query->orderBy('created_at', 'asc'); // Ordenar por los más viejos
-            }
-        }
-
-        // --- FILTROS POR VALOR ---
-        if ($request->filled('valor_min')) {
-            $query->where('valor', '>=', $request->valor_min);
-        }
-
-        if ($request->filled('valor_max')) {
-            $query->where('valor', '<=', $request->valor_max);
-        }
-        // ---------------------------------
-
-        // 3. Ejecutar la consulta y paginar los resultados
-        $equipos = $query->paginate(5)->appends($request->query());
-        
-        // Obtener la lista de personal para el filtro
-        $personal = Staff::all(['id', 'nombre']);
-
-        return $request->wantsJson()
-            ? response()->json($equipos, 200)
-            : view('equipos.panel', compact('equipos', 'personal'));
-    }
-
-    /**
-     * Genera un reporte PDF de los equipos filtrados.
-     */
-    public function generarReporte(Request $request)
-    {
-        // La lógica de filtrado es la misma que en el método index
         $query = Equipo::with('responsableStaff');
 
         if ($request->filled('estado') && in_array($request->estado, ['Nuevo', 'Usado', 'Reparado'])) {
@@ -83,7 +27,7 @@ class EquipoController extends Controller
         }
 
         if ($request->filled('responsable')) {
-            $query->where('responsable', $request->responsable);
+            $query->where('responsable_id', $request->responsable);
         }
 
         if ($request->filled('fecha_creacion')) {
@@ -127,7 +71,7 @@ class EquipoController extends Controller
         }
 
         if ($request->filled('responsable')) {
-            $query->where('responsable', $request->responsable);
+            $query->where('responsable_id', $request->responsable);
         }
 
         if ($request->filled('fecha_creacion')) {
@@ -149,8 +93,10 @@ class EquipoController extends Controller
         $equipos_para_reporte = $query->get();
 
         $pdf = Pdf::loadView('equipos.reporte_pdf', compact('equipos_para_reporte'));
+                
+        // Cambiado de download() a stream() para mostrar el PDF en el navegador
 
-        return $pdf->download('reporte_equipos_' . date('Y-m-d') . '.pdf');
+        return $pdf->stream('reporte_equipos_' . date('Y-m-d') . '.pdf');
     }
 
     /**
@@ -174,7 +120,7 @@ class EquipoController extends Controller
             'tipo_equipo' => 'required|string|max:255',
             'estado' => 'required|string|in:Nuevo,Usado,Reparado',
             'ubicacion' => 'required|string|max:255',
-            'responsable' => 'nullable|exists:staff,id',
+            'responsable_id' => 'nullable|exists:staff,id',
             'cantidad' => 'required|integer|min:1|max:50',
             'valor' => 'required|numeric|min:0',
         ]);
