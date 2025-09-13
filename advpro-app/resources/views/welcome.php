@@ -242,7 +242,7 @@
                 <!-- Developer 1 -->
                 <div class="col-md-6 col-lg-3">
                     <div class="card developer-card h-100">
-                        <img src="https://scontent.fbrm1-1.fna.fbcdn.net/v/t39.30808-6/301579080_452401566904360_3233238639057472646_n.png?_nc_cat=103&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=4VUKN1Aqe7oQ7kNvwFNJ7Nt&_nc_oc=AdnA9PxXpKwezUMfy72eOsic3x3VpTOcHKIPBoJcbjna1iocfgm3lUrXJtziyAEi3p0&_nc_zt=23&_nc_ht=scontent.fbrm1-1.fna&_nc_gid=DwMyWrdWXwDGjXxkv0V2Tg&oh=00_AfTX4TfYkgJxAQfuFUMB4JIXaGFEnw-mUWd9qGnVyhrwJw&oe=6879AFB1" class="developer-img" alt="Desarrollador 1">
+                        <img src="https://image.freepik.com/vector-gratis/diseno-logo-mono_104950-134.jpg" class="developer-img" alt="Desarrollador 1">
                         <div class="card-body text-center">
                             <h5 class="card-title">Moisés Mendoza</h5>
                         </div>
