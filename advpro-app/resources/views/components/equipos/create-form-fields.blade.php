@@ -77,21 +77,27 @@
 
     <label class="block mt-2 mb-2 items-center text-sm">
         <span class="text-gray-700 dark:text-gray-400">Responsable</span>
-        <select name="responsable" id="responsable_create" class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray">
-            <option value="" {{ !old('responsable') ? 'selected' : '' }}>Seleccionar</option>
+        <select name="responsable_id" id="responsable_create" class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:focus:shadow-outline-gray">
+            <option value="" {{ !old('responsable_id') ? 'selected' : '' }}>Seleccionar</option>
             @foreach ($personal as $staff)
-                <option value="{{ $staff->id }}" {{ old('responsable') == $staff->id ? 'selected' : '' }}>
+                <option value="{{ $staff->id }}" {{ old('responsable_id') == $staff->id ? 'selected' : '' }}>
                    {{ $staff->nombre }}
                 </option>
             @endforeach
         </select>
     </label>
-    @error('responsable') <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+    @error('responsable_id') <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
 
+    {{-- Nuevo campo de Cantidad --}}
     <label class="block mt-2 text-sm">
         <span class="text-gray-700 dark:text-gray-400">Cantidad</span>
-        value="{{ old('cantidad') }}"
-        required
+        <input type="number" name="cantidad"
+            class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
+            placeholder="1"
+            value="{{ old('cantidad', 1) }}" {{-- Default to 1 if not set --}}
+            min="1"
+            max="50"
+            required
         />
     </label>
     @error('cantidad') <p class="text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
@@ -101,6 +107,7 @@
         <input type="number" name="valor" step="0.01"
             class="block mt-1 w-full text-sm dark:border-gray-600 dark:bg-gray-700 focus:border-purple-400 focus:outline-none focus:shadow-outline-purple dark:text-gray-300 dark:focus:shadow-outline-gray form-input"
             placeholder="0.00"
+            value="{{ old('valor') }}" {{-- Added old() for persistence --}}
             required
         />
     </label>

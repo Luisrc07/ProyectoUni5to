@@ -120,7 +120,7 @@ class EquipoController extends Controller
             'tipo_equipo' => 'required|string|max:255',
             'estado' => 'required|string|in:Nuevo,Usado,Reparado',
             'ubicacion' => 'required|string|max:255',
-            'responsable' => 'nullable|exists:staff,id',
+            'responsable_id' => 'nullable|exists:staff,id',
             'cantidad' => 'required|integer|min:1|max:50',
             'valor' => 'required|numeric|min:0',
         ]);

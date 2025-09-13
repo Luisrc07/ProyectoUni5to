@@ -27,8 +27,11 @@ Auth::routes();
 // 1. Ruta raíz para invitados: redirige a /login.
 //    Si ya estás autenticado, el middleware 'guest' te enviará a /home.
 Route::get('/', function () {
-    return redirect()->route('login');
-})->middleware('guest')->name('root');
+    return Auth::check()
+        ? redirect()->route('home')    // Si hay sesión, redirige al dashboard
+        : view('welcome');             // Si no hay sesión, muestra la vista welcome
+})->name('root');
+
 
 
 // 2. Rutas de autenticación (guest) - Solo accesibles para usuarios no autenticados
